@@ -1,0 +1,12 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - type: tmpfs
+        target: /var/lib/postgresql/data/
+    command: ["postgres", "-c", "fsync=off"]
+    ports:
+      - "5444:5432"

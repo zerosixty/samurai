@@ -1,0 +1,51 @@
+<idea-plugin>
+    <id>com.samurai.goland</id>
+    <name>Samurai Test Runner</name>
+    <version>0.2.0</version>
+    <vendor>Samurai</vendor>
+
+    <description><![CDATA[
+        Run Samurai BDD tests directly from the editor with gutter icons.
+        <br><br>
+        Features:
+        <ul>
+            <li>Gutter icons next to s.Test() and s.Then() calls</li>
+            <li>Click to run or debug specific test paths</li>
+            <li>Click test results to navigate to source</li>
+            <li>Pass/fail status indicators in the gutter</li>
+            <li>Works with GoLand's native test runner and debugger</li>
+        </ul>
+    ]]></description>
+
+    <change-notes><![CDATA[
+        <b>0.2.0</b>
+        <ul>
+            <li>Renamed from Convey2 to Samurai</li>
+            <li>Rewritten for new API: s.Test(), s.Then(), s.When()</li>
+            <li>Gutter icons on s.Test() and s.Then() lines</li>
+            <li>Test result navigation to source</li>
+            <li>Pass/fail status icons in the gutter</li>
+        </ul>
+    ]]></change-notes>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>org.jetbrains.plugins.go</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Gutter icons for s.Test() and s.Then() calls -->
+        <codeInsight.lineMarkerProvider
+                language="go"
+                implementationClass="com.samurai.plugin.SamuraiRunLineMarkerProvider"/>
+
+        <!-- Samurai run configuration type -->
+        <configurationType implementation="com.samurai.plugin.SamuraiConfigurationType"/>
+
+        <!-- Intercept native "Run Test" actions for samurai tests -->
+        <runConfigurationProducer id="SamuraiRunConfigurationProducer"
+                                  implementation="com.samurai.plugin.SamuraiRunConfigurationProducer"
+                                  order="first"/>
+
+        <!-- Notification group for error messages -->
+        <notificationGroup id="Samurai" displayType="BALLOON"/>
+    </extensions>
+</idea-plugin>
