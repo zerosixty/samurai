@@ -9,6 +9,10 @@ Scoped testing for Go.
 
 A scoped testing framework for Go with path isolation. You define a test tree using a single `Test()` method, the framework discovers all leaf paths, then runs each one independently with fresh local variables. Parallel by default via `t.Parallel()`. Zero dependencies, bring your own assertion library.
 
+## Why "samurai"? *(as Yoda would say)*
+
+No goal, a samurai has. Only the path. Each test -- a samurai it is, following its own path from root to leaf. Cross paths, two samurai never do. Walk in parallel they will, each with its own state, its own setup, its own cleanup. Shared mutable ground? Exists not. The path, there is only.
+
 ## What it does
 
 You write a builder function that describes a tree of tests. Samurai runs the builder once in discovery mode to collect all the paths from root to leaf. Then, for each path, it runs the builder again from scratch in execution mode. Because the builder re-runs per path, local variables (`var db *DB`, `var user *User`, etc.) are fresh allocations every time. Paths can't interfere with each other.
