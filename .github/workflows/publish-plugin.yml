@@ -24,8 +24,8 @@ jobs:
       - name: Extract version from latest tag
         id: version
         run: |
-          tag=$(git tag --list 'plugin-v*' --sort=-v:refname | head -n1)
-          echo "version=${tag#plugin-v}" >> "$GITHUB_OUTPUT"
+          tag=$(git tag --list 'v*' --sort=-v:refname | head -n1)
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
 
       - run: ./gradlew buildPlugin
         env:
