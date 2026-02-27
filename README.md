@@ -10,6 +10,7 @@ Scoped testing for Go.
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?logo=go&logoColor=white)
 ![Zero Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)
+[![GoLand Plugin](https://img.shields.io/jetbrains/plugin/v/30391-samurai-test-runner?label=GoLand%20Plugin&logo=jetbrains&color=orange)](https://plugins.jetbrains.com/plugin/30391-samurai-test-runner)
 
 A scoped testing framework for Go with path isolation. You define a test tree using a single `Test()` method, the framework discovers all leaf paths, then runs each one independently with fresh local variables. Parallel by default via `t.Parallel()`. Zero dependencies, bring your own assertion library.
 
@@ -497,6 +498,18 @@ Samurai emits nested `t.Run` calls, so IDE test runners and `-run` flags work as
 ```bash
 go test -run "TestUserService/with_service/create_user/has_the_correct_email" -v
 ```
+
+### GoLand plugin
+
+Install the [Samurai Test Runner](https://plugins.jetbrains.com/plugin/30391-samurai-test-runner) plugin for click-to-navigate from test results to `s.Test()` source locations, and gutter run icons with pass/fail status.
+
+<details>
+<summary>Screenshots</summary>
+
+<img src="https://plugins.jetbrains.com/files/30391/screenshot_36503e4e-f607-469e-9f7c-aa5797de1b3c" width="100%" />
+<img src="https://plugins.jetbrains.com/files/30391/screenshot_14a7448f-830a-493e-8a9a-ad3a87574f57" width="100%" />
+
+</details>
 
 GoLand and VS Code show the green play button next to test functions. Test output shows the full path:
 
