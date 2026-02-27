@@ -24,7 +24,7 @@ import com.intellij.util.Alarm
  * Extends GoTestRunningState to inherit all native Go test execution behavior
  * including the hierarchical test tree. Injects SamuraiTestLocator onto each
  * test proxy node as it's created, enabling navigation from test results to
- * s.Test()/s.Then() source locations without breaking the native tree structure.
+ * s.Test() source locations without breaking the native tree structure.
  */
 class SamuraiRunningState(
     env: ExecutionEnvironment,

@@ -45,12 +45,12 @@ class SamuraiRunLineMarkerProvider : LineMarkerProvider {
     }
 
     override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
-        // We anchor to the method name identifier (e.g. "Test" or "Then") which is a unique
+        // We anchor to the method name identifier (e.g. "Test") which is a unique
         // leaf element for each call. Previously we used getFirstLeaf(callExpr) which resolved
-        // to the receiver "s" — shared across all s.Test/s.Then/s.When calls, causing GoLand
+        // to the receiver "s" — shared across all s.Test() calls, causing GoLand
         // to keep only one marker.
 
-        // element must be an identifier leaf inside a GoReferenceExpression (e.g. s.Then)
+        // element must be an identifier leaf inside a GoReferenceExpression (e.g. s.Test)
         val refExpr = element.parent as? GoReferenceExpression ?: return null
         val identifier = refExpr.identifier ?: return null
         if (element !== identifier) return null

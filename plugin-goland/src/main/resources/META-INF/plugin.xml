@@ -38,7 +38,7 @@
     <depends>org.jetbrains.plugins.go</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <!-- Gutter icons for s.Test() and s.Then() calls -->
+        <!-- Gutter icons for s.Test() calls -->
         <codeInsight.lineMarkerProvider
                 language="go"
                 implementationClass="com.samurai.plugin.SamuraiRunLineMarkerProvider"/>
