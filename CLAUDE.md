@@ -13,6 +13,10 @@ Samurai is a scoped testing framework for Go with path isolation, inspired by Go
 - No double execution - code runs exactly once per test path
 - Generic `RunWith` for custom test contexts via embedded `*BaseContext` (Go 1.25+ generic type aliases)
 
+## Git Workflow
+
+- **NEVER push directly to master.** Always work through a PR: create a branch, push, `gh pr create`, `gh pr merge`.
+
 ## Build & Test Commands
 
 ```bash
