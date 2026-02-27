@@ -1,0 +1,37 @@
+name: Publish GoLand Plugin
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugin-goland
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Extract version from latest tag
+        id: version
+        run: |
+          tag=$(git tag --list 'plugin-v*' --sort=-v:refname | head -n1)
+          echo "version=${tag#plugin-v}" >> "$GITHUB_OUTPUT"
+
+      - run: ./gradlew buildPlugin
+        env:
+          PLUGIN_VERSION: ${{ steps.version.outputs.version }}
+
+      - run: ./gradlew publishPlugin
+        env:
+          PUBLISH_TOKEN: ${{ secrets.JB_PUBLISH_TOKEN }}
+          PLUGIN_VERSION: ${{ steps.version.outputs.version }}
