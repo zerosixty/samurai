@@ -1,30 +1,36 @@
 <idea-plugin>
-    <id>com.samurai.goland</id>
+    <id>com.samurai.testrunner</id>
     <name>Samurai Test Runner</name>
     <version>0.2.0</version>
-    <vendor>Samurai</vendor>
+    <vendor url="https://github.com/zerosixty/samurai" email="zerosixty@users.noreply.github.com">zerosixty</vendor>
 
     <description><![CDATA[
-        Run Samurai BDD tests directly from the editor with gutter icons.
+        GoLand integration for the <a href="https://github.com/zerosixty/samurai">Samurai</a> scoped testing framework.
         <br><br>
-        Features:
+        <b>Samurai</b> is a Go testing framework with path isolation: you define a test tree using a single
+        <code>s.Test()</code> method, the framework discovers all leaf paths, then runs each one independently
+        with fresh local variables. Parallel by default, zero dependencies, bring your own assertions.
+        <br><br>
+        <b>Plugin features:</b>
         <ul>
-            <li>Gutter icons next to s.Test() and s.Then() calls</li>
-            <li>Click to run or debug specific test paths</li>
-            <li>Click test results to navigate to source</li>
-            <li>Pass/fail status indicators in the gutter</li>
-            <li>Works with GoLand's native test runner and debugger</li>
+            <li>Gutter run/debug icons on <code>s.Test()</code> calls</li>
+            <li>Run individual test paths or entire subtrees from the editor</li>
+            <li>Click test results in the tree to navigate back to source</li>
+            <li>Pass/fail status indicators in the gutter after test runs</li>
+            <li>Full integration with GoLand's native test runner and debugger</li>
         </ul>
+        <br>
+        Requires <a href="https://github.com/zerosixty/samurai">github.com/zerosixty/samurai</a> in your Go module.
     ]]></description>
 
     <change-notes><![CDATA[
         <b>0.2.0</b>
         <ul>
-            <li>Renamed from Convey2 to Samurai</li>
-            <li>Rewritten for new API: s.Test(), s.Then(), s.When()</li>
-            <li>Gutter icons on s.Test() and s.Then() lines</li>
-            <li>Test result navigation to source</li>
-            <li>Pass/fail status icons in the gutter</li>
+            <li>Single <code>s.Test()</code> API — supports both leaf tests and nested scopes</li>
+            <li>Gutter icons on all <code>s.Test()</code> calls with run/debug actions</li>
+            <li>Test result navigation from the test tree to source locations</li>
+            <li>Pass/fail status indicators in the gutter</li>
+            <li>Supports both <code>samurai.Run()</code> and <code>samurai.RunWith()</code></li>
         </ul>
     ]]></change-notes>
 
