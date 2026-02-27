@@ -4,7 +4,7 @@ This document records approaches that were tried and failed during GoLand plugin
 
 ## 1. Custom console with UIUtil.invokeLaterIfNeeded for initConsoleView
 
-**What**: Override `createConsoleInner()` to create a custom `SMTRunnerConsoleView` with `SamuraiConsoleProperties`, calling `SMTestRunnerConnectionUtil.initConsoleView()` inside `UIUtil.invokeLaterIfNeeded`.
+**What**: Override `createConsoleInner()` to create a custom `SMTRunnerConsoleView` with custom console properties, calling `SMTestRunnerConnectionUtil.initConsoleView()` inside `UIUtil.invokeLaterIfNeeded`.
 
 **Why it failed**: `initConsoleView` registers an `AttachToProcessListener`. The parent `GoRunningState.execute()` calls `attachToProcess()` immediately after `createConsoleInner()` returns. When `initConsoleView` is deferred to EDT, the listener isn't registered when `attachToProcess` fires. Result: events arrive before the tree builder is wired up, producing a **flat test list** instead of a hierarchical tree.
 
@@ -14,15 +14,15 @@ This document records approaches that were tried and failed during GoLand plugin
 
 **What**: Same as above but calling `initConsoleView` synchronously (no `UIUtil.invokeLaterIfNeeded`).
 
-**Why it failed**: Still produced a **flat test list**. The `AttachToProcessListener` registered by `initConsoleView` reads BOTH `createTestEventsConverter()` AND `getTestLocator()` from the console properties when `attachToProcess()` fires. Our `SamuraiConsoleProperties.createTestEventsConverter()` delegates to `config.createTestEventsConverter()`, but the result is not identical to what `GoTestConsoleProperties` produces internally. The native `GoTestConsoleProperties` (which is `final`) does something additional in its converter setup that produces the hierarchical tree. Our delegation breaks it.
+**Why it failed**: Still produced a **flat test list**. The `AttachToProcessListener` registered by `initConsoleView` reads BOTH `createTestEventsConverter()` AND `getTestLocator()` from the console properties when `attachToProcess()` fires. Our custom console properties' `createTestEventsConverter()` delegates to `config.createTestEventsConverter()`, but the result is not identical to what `GoTestConsoleProperties` produces internally. The native `GoTestConsoleProperties` (which is `final`) does something additional in its converter setup that produces the hierarchical tree. Our delegation breaks it.
 
 **Lesson**: Cannot replicate `GoTestConsoleProperties` behavior by delegation. The native console setup must be used as-is for tree hierarchy.
 
 ## 3. Swapping myProperties via reflection (after super.createConsoleInner)
 
-**What**: Let `super.createConsoleInner()` create the native console, then use reflection to replace the `myProperties` field on `BaseTestsOutputConsoleView` with `SamuraiConsoleProperties`.
+**What**: Let `super.createConsoleInner()` create the native console, then use reflection to replace the `myProperties` field on `BaseTestsOutputConsoleView` with custom console properties.
 
-**Why it failed**: The `AttachToProcessListener` (registered by `initConsoleView` inside `super.createConsoleInner()`) reads from `myProperties` when `attachToProcess()` fires. Swapping properties meant the listener used `SamuraiConsoleProperties` for both the events converter and the locator. Same as approach #2 — the events converter delegation breaks tree hierarchy.
+**Why it failed**: The `AttachToProcessListener` (registered by `initConsoleView` inside `super.createConsoleInner()`) reads from `myProperties` when `attachToProcess()` fires. Swapping properties meant the listener used custom properties for both the events converter and the locator. Same as approach #2 — the events converter delegation breaks tree hierarchy.
 
 **Variant tested**: Swapping properties to get navigation working, then accepting broken grouping. Navigation worked but grouping was flat. Not acceptable.
 
@@ -44,7 +44,7 @@ This document records approaches that were tried and failed during GoLand plugin
 
 **Lesson**: Cannot register custom Go test frameworks in GoLand. Must use standalone configuration type.
 
-## 6. Custom command-line execution (original convey2 approach)
+## 6. Custom command-line execution (original approach)
 
 **What**: Use `LocatableConfigurationBase` with a custom `RunningState` that manually ran `go test -json -v -run PATTERN ./...` via `GeneralCommandLine`.
 
@@ -83,5 +83,6 @@ The working approach (documented in ARCHITECTURE.md):
 2. Subscribe to `SMTRunnerEventsListener.TEST_STATUS` via project message bus
 3. In `onTestStarted`/`onSuiteStarted`: call `proxy.setLocator(samuraiLocator)` on each test proxy
 4. In `onTestFinished`/`onTestFailed`: update `SamuraiTestResultCache`
+5. Dispose the message bus connection when the process terminates
 
 This gives us: native tree hierarchy (from GoTestConsoleProperties) + custom navigation (from SamuraiTestLocator injected per-proxy) + gutter icon status updates.

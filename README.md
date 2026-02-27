@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/banner.jpg" alt="samurai — scoped testing for Go" width="100%">
+</p>
+
 # Samurai 侍
 
 Scoped testing for Go.
