@@ -16,6 +16,7 @@ Samurai is a scoped testing framework for Go with path isolation, inspired by Go
 ## Git Workflow
 
 - **NEVER push directly to master.** Always work through a PR: create a branch, push, `gh pr create`, `gh pr merge`.
+- **Use `gh release create` for releases.** Never use manual `git tag` + `git push --tags`. Always create releases via `gh release create vX.Y.Z` so they appear on the GitHub Releases page.
 
 ## Build & Test Commands
 
