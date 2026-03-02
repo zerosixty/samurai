@@ -34,83 +34,72 @@ Requires Go 1.24+.
 
 ## Quick Start
 
+`samurai.Run` takes a builder function. Variables declared in the builder are fresh per path because the builder re-runs for each leaf:
+
 ```go
-package calc_test
+package db_test
 
 import (
     "context"
+    "database/sql"
     "testing"
 
     "github.com/zerosixty/samurai"
 )
 
-func TestCalculator(t *testing.T) {
+func TestDatabase(t *testing.T) {
     samurai.Run(t, func(s *samurai.Scope) {
-        var result int
+        var db *sql.DB  // fresh allocation for every path
 
-        s.Test("add numbers", func(_ context.Context, w samurai.W) {
-            result = 2 + 3
+        s.Test("with database", func(ctx context.Context, w samurai.W) {
+            db = openTestDB(ctx)
+            w.Cleanup(func() { db.Close() })
         }, func(s *samurai.Scope) {
-            s.Test("produces the correct sum", func(_ context.Context, w samurai.W) {
-                if result != 5 {
-                    w.Testing().Errorf("expected 5, got %d", result)
+            s.Test("can ping", func(ctx context.Context, w samurai.W) {
+                // this db belongs only to this path
+                if err := db.PingContext(ctx); err != nil {
+                    w.Testing().Fatal(err)
                 }
             })
 
-            s.Test("produces a positive number", func(_ context.Context, w samurai.W) {
-                if result <= 0 {
-                    w.Testing().Errorf("expected positive, got %d", result)
+            s.Test("can query", func(ctx context.Context, w samurai.W) {
+                // different path, different db instance
+                rows, err := db.QueryContext(ctx, "SELECT 1")
+                if err != nil {
+                    w.Testing().Fatal(err)
                 }
+                rows.Close()
             })
         })
     })
 }
 ```
 
-Two paths get discovered: `add numbers/produces the correct sum` and `add numbers/produces a positive number`. The builder runs fresh for each, so `result` is a new variable both times. Both paths run in parallel.
+Two paths get discovered: `with database/can ping` and `with database/can query`. The builder runs fresh for each, so `db` is a new variable both times. Both paths run in parallel.
 
 ```bash
 go test -v
-=== RUN   TestCalculator
-=== RUN   TestCalculator/add_numbers
-=== RUN   TestCalculator/add_numbers/produces_the_correct_sum
-=== RUN   TestCalculator/add_numbers/produces_a_positive_number
---- PASS: TestCalculator (0.00s)
-    --- PASS: TestCalculator/add_numbers (0.00s)
-        --- PASS: TestCalculator/add_numbers/produces_the_correct_sum (0.00s)
-        --- PASS: TestCalculator/add_numbers/produces_a_positive_number (0.00s)
+=== RUN   TestDatabase
+=== RUN   TestDatabase/with_database
+=== RUN   TestDatabase/with_database/can_ping
+=== RUN   TestDatabase/with_database/can_query
+--- PASS: TestDatabase (0.00s)
+    --- PASS: TestDatabase/with_database (0.00s)
+        --- PASS: TestDatabase/with_database/can_ping (0.00s)
+        --- PASS: TestDatabase/with_database/can_query (0.00s)
 ```
+
+## AI-assisted development
+
+If you use [Claude Code](https://docs.anthropic.com/en/docs/claude-code), run this once in your project root to install a samurai skill:
+
+```bash
+go run github.com/zerosixty/samurai/cmd/claude-setup@latest
+```
+
+This creates `.claude/skills/samurai/SKILL.md`. Claude Code will use it as a reference when writing or modifying samurai tests. You can also invoke `/samurai` to load the reference manually.
 
 ## How it works
-
-`samurai.Run` takes a builder function. Variables declared in the builder are fresh per path because the builder re-runs for each leaf:
-
-```go
-samurai.Run(t, func(s *samurai.Scope) {
-    var db *sql.DB  // fresh allocation for every path
-
-    s.Test("with database", func(ctx context.Context, w samurai.W) {
-        db = openTestDB(ctx)
-        w.Cleanup(func() { db.Close() })
-    }, func(s *samurai.Scope) {
-        s.Test("can ping", func(ctx context.Context, w samurai.W) {
-            // this db belongs only to this path
-            if err := db.PingContext(ctx); err != nil {
-                w.Testing().Fatal(err)
-            }
-        })
-
-        s.Test("can query", func(ctx context.Context, w samurai.W) {
-            // different path, different db instance
-            rows, err := db.QueryContext(ctx, "SELECT 1")
-            if err != nil {
-                w.Testing().Fatal(err)
-            }
-            rows.Close()
-        })
-    })
-})
-```
 
 ### Database testing
 

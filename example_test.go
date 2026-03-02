@@ -49,6 +49,33 @@ func ExampleRunWith() {
 	// setup/check B
 }
 
+// ExampleRun_skip demonstrates the Skip method.
+// Skip marks all tests in a scope as skipped — their callbacks never execute.
+// Skip propagates to nested scopes. Call order relative to Test does not matter.
+func ExampleRun_skip() {
+	paths, _ := collectScopedPaths(func(s *Scope) {
+		s.Test("stable feature", func(_ context.Context, _ W) {}, func(s *Scope) {
+			s.Test("works", func(_ context.Context, _ W) {})
+		})
+
+		s.Test("WIP feature", func(_ context.Context, _ W) {}, func(s *Scope) {
+			s.Skip()
+			s.Test("not ready", func(_ context.Context, _ W) {})
+		})
+	})
+	for _, p := range paths {
+		path := strings.Join(p.segments, "/")
+		if p.skipped {
+			fmt.Println(path + " (skipped)")
+		} else {
+			fmt.Println(path)
+		}
+	}
+	// Output:
+	// stable feature/works
+	// WIP feature/not ready (skipped)
+}
+
 // ExampleRun_nested demonstrates deeply nested test paths with multiple branches.
 // Each leaf path executes independently with fresh parent setup.
 func ExampleRun_nested() {
