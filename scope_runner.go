@@ -2,51 +2,42 @@ package samurai
 
 import (
 	"fmt"
-	"sync"
 	"testing"
 )
 
 // executeScope runs the builder in execution mode for one leaf path.
-// The builder runs fresh, allocating new local variables for this path.
-// Each scope level creates its own BaseContext with a cleanup slice, so cleanup
-// ownership is explicit and doesn't require save/restore on a shared struct.
+// The factory is called exactly once to create v. The same v is reused
+// across all scope levels via runPath. Each level gets its own cleanup
+// slice via cleanupStack, ensuring inner cleanups run before outer ones
+// and factory cleanups run last.
 func executeScope[V Context](t *testing.T, builder func(*TestScope[V]), factory func(W) V, path []string) {
-	var mu sync.Mutex
-	var cleanups []func()
+	var stack cleanupStack
+	stack.push() // level 0: factory cleanups (run last)
+
 	base := &BaseContext{
-		tt: t,
-		addCleanup: func(fn func()) {
-			mu.Lock()
-			cleanups = append(cleanups, fn)
-			mu.Unlock()
-		},
+		tt:         t,
+		addCleanup: stack.add,
 	}
 	v := factory(base)
 
-	// Single defer handles both panic recovery and cleanup execution.
-	// Order: recover panic first (so cleanups still run), then run cleanups.
+	// Single defer: recover panics, then run factory-level cleanups.
 	defer func() {
 		if r := recover(); r != nil {
-			// Re-panic internal samurai errors (programming mistakes)
 			if err, ok := r.(*samuraiErr); ok {
 				panic(err)
 			}
-			// Report user panics
 			t.Helper()
 			t.Errorf("panic: %v\n%s", r, captureCurrentStack())
 		}
-
-		// Snapshot cleanups under the lock to prevent races with user goroutines
-		// that may still be calling Cleanup() after the callback returned.
-		mu.Lock()
-		snapshot := make([]func(), len(cleanups))
-		copy(snapshot, cleanups)
-		mu.Unlock()
-		runCleanups(snapshot, t)
+		runCleanups(stack.pop(), t)
 	}()
 
-	// Run builder in EXECUTION mode.
-	// This allocates fresh local variables. Test() only records children.
+	runPath(t, builder, v, &stack, path)
+}
+
+// runPath descends one level of the path using an existing v.
+// It does NOT call the factory. Each callback gets its own cleanup level.
+func runPath[V Context](t *testing.T, builder func(*TestScope[V]), v V, stack *cleanupStack, path []string) {
 	s := &TestScope[V]{mode: modeExecution}
 	builder(s)
 	s.sealed.Store(true)
@@ -58,28 +49,34 @@ func executeScope[V Context](t *testing.T, builder func(*TestScope[V]), factory 
 		return
 	}
 
-	// Find the child matching the next path element
 	targetName := path[0]
 	for _, child := range s.children {
 		if child.name == targetName {
-			// Execute this child's fn with the current scope's context
+			// Push a cleanup level for this callback.
+			stack.push()
+			defer func() {
+				runCleanups(stack.pop(), t)
+			}()
+
 			child.fn(t.Context(), v)
 
 			if len(path) == 1 {
-				// Last path element — this is a leaf, we're done
 				return
 			}
 
-			// More path elements — recurse into child's builder
 			if child.builder == nil {
-				panic(&samuraiErr{message: fmt.Sprintf("path continues after leaf %q (internal error)", targetName)})
+				panic(&samuraiErr{message: fmt.Sprintf(
+					"path continues after leaf %q (internal error)", targetName)})
 			}
-			executeScope[V](t, child.builder, factory, path[1:])
+
+			runPath(t, child.builder, v, stack, path[1:])
 			return
 		}
 	}
 
-	panic(&samuraiErr{message: fmt.Sprintf("path element %q not found in scope (builder produced different structure between discovery and execution)", targetName)})
+	panic(&samuraiErr{message: fmt.Sprintf(
+		"path element %q not found in scope (builder produced different structure between discovery and execution)",
+		targetName)})
 }
 
 // discoveredPath represents a leaf path found during discovery.

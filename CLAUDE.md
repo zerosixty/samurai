@@ -177,7 +177,7 @@ samurai.RunWith(t, func(w samurai.W) *MyCtx {
 ```
 
 Key points:
-- The factory `func(W) V` is called **once per scope level** with that level's `*BaseContext`
+- The factory `func(W) V` is called **once per test path**. The same value is reused across all scope levels in that path.
 - `w.Context()` in the factory returns the scope's `context.Context` — use it for initialization that needs a context
 - All callbacks receive the custom `V` — no separate W/C distinction
 - `BaseContext` uses `Testing()` instead of `T()` to avoid conflicts with testify's `T()` method

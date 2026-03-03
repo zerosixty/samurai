@@ -89,7 +89,7 @@ func TestWithAssertions(t *testing.T) {
 }
 ```
 
-Factory `func(W) V` is called once per scope level per path (not once globally).
+Factory `func(W) V` is called once per test path. The same value is reused across all scope levels in that path.
 
 ## Validation (all panic)
 

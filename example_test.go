@@ -35,7 +35,7 @@ func ExampleRunWith() {
 
 	paths, _ := collectScopedPaths(func(s *TestScope[*myCtx]) {
 		s.Test("setup", func(_ context.Context, _ *myCtx) {
-			// factory creates *myCtx from *BaseContext per scope level
+			// factory creates *myCtx from *BaseContext once per test path
 		}, func(s *TestScope[*myCtx]) {
 			s.Test("check A", func(_ context.Context, _ *myCtx) {})
 			s.Test("check B", func(_ context.Context, _ *myCtx) {})

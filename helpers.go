@@ -2,6 +2,7 @@ package samurai
 
 import (
 	"runtime"
+	"sync"
 	"testing"
 )
 
@@ -22,6 +23,35 @@ func runCleanups(cleanups []func(), t *testing.T) {
 			cleanups[i]()
 		}()
 	}
+}
+
+// cleanupStack is a thread-safe stack of cleanup slices used by executeScope.
+// Each scope level pushes a new slice. Cleanup() always appends to the top.
+// Pop returns the top slice for execution, ensuring inner cleanups run before outer.
+type cleanupStack struct {
+	mu     sync.Mutex
+	levels [][]func()
+}
+
+func (cs *cleanupStack) push() {
+	cs.mu.Lock()
+	cs.levels = append(cs.levels, nil)
+	cs.mu.Unlock()
+}
+
+func (cs *cleanupStack) add(fn func()) {
+	cs.mu.Lock()
+	cs.levels[len(cs.levels)-1] = append(cs.levels[len(cs.levels)-1], fn)
+	cs.mu.Unlock()
+}
+
+func (cs *cleanupStack) pop() []func() {
+	cs.mu.Lock()
+	top := len(cs.levels) - 1
+	fns := cs.levels[top]
+	cs.levels = cs.levels[:top]
+	cs.mu.Unlock()
+	return fns
 }
 
 // samuraiErr represents an internal samurai error (programming mistake).

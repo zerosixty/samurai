@@ -791,7 +791,7 @@ func TestRunWithBasic(t *testing.T) {
 	})
 }
 
-func TestRunWithFactoryPerLevel(t *testing.T) {
+func TestRunWithFactoryPerPath(t *testing.T) {
 	var factoryCalls int
 	var mu sync.Mutex
 
@@ -811,13 +811,99 @@ func TestRunWithFactoryPerLevel(t *testing.T) {
 		})
 	}, Sequential())
 
-	// Factory is called once per executeScope call (once per scope level).
-	// Path A: root level + setup level = 2 calls (A's fn runs with setup level's v)
-	// Path B: root level + setup level = 2 calls (B's fn runs with setup level's v)
-	// Total: 4 calls
-	if factoryCalls != 4 {
-		t.Errorf("expected 4 factory calls, got %d", factoryCalls)
+	// Factory is called once per path (once per executeScope call).
+	// Path A: setup/A = 1 factory call
+	// Path B: setup/B = 1 factory call
+	// Total: 2 calls
+	if factoryCalls != 2 {
+		t.Errorf("expected 2 factory calls (one per path), got %d", factoryCalls)
 	}
+}
+
+func TestRunWithSharedState(t *testing.T) {
+	type statefulCtx struct {
+		*BaseContext
+		value string
+	}
+
+	RunWith(t, func(w W) *statefulCtx {
+		return &statefulCtx{BaseContext: w}
+	}, func(s *TestScope[*statefulCtx]) {
+		s.Test("set value", func(_ context.Context, c *statefulCtx) {
+			c.value = "hello"
+		}, func(s *TestScope[*statefulCtx]) {
+			s.Test("child sees value", func(_ context.Context, c *statefulCtx) {
+				if c.value != "hello" {
+					c.Testing().Errorf("expected \"hello\", got %q", c.value)
+				}
+			})
+		})
+	})
+}
+
+func TestRunWithFactoryCleanupRunsLast(t *testing.T) {
+	var order []string
+	var mu sync.Mutex
+
+	addOrder := func(s string) {
+		mu.Lock()
+		order = append(order, s)
+		mu.Unlock()
+	}
+
+	RunWith(t, func(w W) *testContext {
+		w.Cleanup(func() { addOrder("factory") })
+		return &testContext{BaseContext: w, label: "custom"}
+	}, func(s *TestScope[*testContext]) {
+		s.Test("parent", func(_ context.Context, c *testContext) {
+			c.Cleanup(func() { addOrder("parent") })
+		}, func(s *TestScope[*testContext]) {
+			s.Test("child", func(_ context.Context, c *testContext) {
+				c.Cleanup(func() { addOrder("child") })
+			})
+		})
+	}, Sequential())
+
+	expected := []string{"child", "parent", "factory"}
+	if len(order) != len(expected) {
+		t.Fatalf("expected %d cleanups, got %d: %v", len(expected), len(order), order)
+	}
+	for i, v := range expected {
+		if order[i] != v {
+			t.Errorf("cleanup[%d]: expected %q, got %q (full: %v)", i, v, order[i], order)
+		}
+	}
+}
+
+func TestRunWithDeeplyNestedSharedState(t *testing.T) {
+	type accumCtx struct {
+		*BaseContext
+		items []string
+	}
+
+	RunWith(t, func(w W) *accumCtx {
+		return &accumCtx{BaseContext: w}
+	}, func(s *TestScope[*accumCtx]) {
+		s.Test("L1", func(_ context.Context, c *accumCtx) {
+			c.items = append(c.items, "L1")
+		}, func(s *TestScope[*accumCtx]) {
+			s.Test("L2", func(_ context.Context, c *accumCtx) {
+				c.items = append(c.items, "L2")
+			}, func(s *TestScope[*accumCtx]) {
+				s.Test("L3", func(_ context.Context, c *accumCtx) {
+					c.items = append(c.items, "L3")
+				}, func(s *TestScope[*accumCtx]) {
+					s.Test("L4", func(_ context.Context, c *accumCtx) {
+						expected := "L1,L2,L3"
+						got := strings.Join(c.items, ",")
+						if got != expected {
+							c.Testing().Errorf("expected %q, got %q", expected, got)
+						}
+					})
+				})
+			})
+		})
+	})
 }
 
 func TestRunWithCleanup(t *testing.T) {
