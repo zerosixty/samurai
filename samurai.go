@@ -147,8 +147,8 @@ func identityFactory(w W) W {
 }
 
 // RunWith executes a test using the scoped builder API with a custom factory.
-// The factory creates a value of type V from *BaseContext for each scope level.
-// This value is passed as the second argument to all Test callbacks.
+// The factory creates a value of type V from *BaseContext once per test path.
+// This value is passed as the second argument to all Test callbacks in that path.
 //
 // Use RunWith when you want callbacks to receive a custom type (e.g. an assertion helper).
 // Embed *BaseContext in your custom type to satisfy the Context constraint.
