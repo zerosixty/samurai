@@ -38,7 +38,7 @@ go test -race ./...     # Run with race detector
 - `samurai.go` - Public API: `Run`, `RunWith[V]`, `Context` interface, `W` type alias, options (`Parallel`, `Sequential`); internal path tree building (`pathNode`, `buildPathTree`, `executeTree[V]`); `identityFactory` for the non-generic `Run`
 - `scope.go` - `TestScope[V]` generic struct with `Test()` and `Skip()` methods; `type Scope = TestScope[W]` alias
 - `scope_runner.go` - Generic path discovery (`collectScopedPaths[V]`, `collectPathsFromChildren`, `probeBuilder`) and execution (`executeScope[V]`, `executeScopedPath[V]`)
-- `step_context.go` - `BaseContext` struct implementing `Context` interface; provides `Testing()` and `Cleanup()`
+- `base_context.go` - `BaseContext` struct implementing `Context` interface; provides `Context()`, `Testing()` and `Cleanup()`
 - `runner.go` - Shared helpers: panic recovery, cleanup execution
 
 ## API Summary
@@ -58,8 +58,9 @@ type Context interface {
 
 // BaseContext is the framework-provided implementation
 type BaseContext struct { /* unexported fields */ }
-func (b *BaseContext) Testing() *testing.T { ... }
-func (b *BaseContext) Cleanup(fn func())   { ... }
+func (b *BaseContext) Context() context.Context { ... }
+func (b *BaseContext) Testing() *testing.T      { ... }
+func (b *BaseContext) Cleanup(fn func())        { ... }
 
 // Type aliases for the simple case
 type W     = *BaseContext                          // Default test context
@@ -144,7 +145,7 @@ Key points:
 
 ### Generic RunWith — Custom Test Context
 
-`RunWith` lets you provide a factory that creates a custom context for all callbacks. Embed `*BaseContext` in your struct to get `Testing()` and `Cleanup()` for free:
+`RunWith` lets you provide a factory that creates a custom context for all callbacks. Embed `*BaseContext` in your struct to get `Context()`, `Testing()` and `Cleanup()` for free. The factory can use `w.Context()` for initialization that requires a `context.Context`:
 
 ```go
 type MyCtx struct {
@@ -177,6 +178,7 @@ samurai.RunWith(t, func(w samurai.W) *MyCtx {
 
 Key points:
 - The factory `func(W) V` is called **once per scope level** with that level's `*BaseContext`
+- `w.Context()` in the factory returns the scope's `context.Context` — use it for initialization that needs a context
 - All callbacks receive the custom `V` — no separate W/C distinction
 - `BaseContext` uses `Testing()` instead of `T()` to avoid conflicts with testify's `T()` method
 - `Scope` is a type alias for `TestScope[W]`, so `Run` delegates to `RunWith[W]` internally
