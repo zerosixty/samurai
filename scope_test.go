@@ -909,6 +909,26 @@ func TestRunWithTypeAlias(t *testing.T) {
 	})
 }
 
+func TestRunWithFactoryContext(t *testing.T) {
+	// Verify that w.Context() in the factory returns the same context
+	// that Test callbacks receive as their first parameter.
+	var factoryCtx context.Context
+
+	RunWith(t, func(w W) *testContext {
+		factoryCtx = w.Context()
+		return &testContext{BaseContext: w, label: "custom"}
+	}, func(s *TestScope[*testContext]) {
+		s.Test("context matches", func(ctx context.Context, c *testContext) {
+			if factoryCtx == nil {
+				c.Testing().Fatal("factory context was nil")
+			}
+			if ctx != factoryCtx {
+				c.Testing().Fatal("Test callback context differs from factory context")
+			}
+		})
+	}, Sequential())
+}
+
 // --- Benchmark ---
 
 func BenchmarkDiscovery(b *testing.B) {

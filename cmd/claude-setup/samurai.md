@@ -62,13 +62,14 @@ func TestFeature(t *testing.T) {
 - Each leaf path re-executes the builder from scratch — fresh variables, full isolation
 - `w.Cleanup(fn)`: LIFO order, inner before outer, runs even on panic, thread-safe
 - `s.Skip()`: affects entire scope regardless of call order, no callbacks/cleanups execute
-- `context.Context`: first param, live during test, canceled after path completes
+- `w.Context()`: returns the scope's `context.Context` — use in factories for initialization needing a context
+- `context.Context`: first param in `Test` callbacks, live during test, canceled after path completes
 - Parallel by default; `samurai.Sequential()` forces order; `go test -parallel N` controls concurrency
 - Assertion-agnostic: use `w.Testing()` with any library (testify, is, stdlib)
 
 ## RunWith (Custom Context)
 
-Embed `*samurai.BaseContext` to satisfy `samurai.Context`. Use `Testing()` not `T()` (avoids testify conflict).
+Embed `*samurai.BaseContext` to satisfy `samurai.Context`. Use `Testing()` not `T()` (avoids testify conflict). Use `w.Context()` in the factory for initialization that needs a `context.Context`.
 
 ```go
 type MyCtx struct {

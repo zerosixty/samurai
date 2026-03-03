@@ -175,6 +175,7 @@ The first parameter is `context.Context` (from `T.Context()`), the second is `W`
 
 | Method | Returns | Purpose |
 |--------|---------|---------|
+| `w.Context()` | `context.Context` | The context for this scope (canceled when test completes) |
 | `w.Testing()` | `*testing.T` | The test instance for this path |
 | `w.Cleanup(func())` | - | Register LIFO cleanup, runs even on panic |
 
@@ -451,6 +452,7 @@ func TestUserService(t *testing.T) {
 A few things to note:
 
 - The factory `func(W) V` runs once per scope level with that level's `*BaseContext`
+- The factory can call `w.Context()` for initialization that needs a `context.Context`
 - All callbacks receive `V` instead of `W`
 - `BaseContext` uses `Testing()` instead of `T()` to avoid conflicts with testify's `T()` method
 - `Scope` is a type alias for `TestScope[W]`, so `Run` just delegates to `RunWith[W]`
@@ -541,6 +543,7 @@ type Context interface {
 
 // Default test context
 type BaseContext struct{ /* unexported */ }
+func (b *BaseContext) Context() context.Context
 func (b *BaseContext) Testing() *testing.T
 func (b *BaseContext) Cleanup(fn func())
 

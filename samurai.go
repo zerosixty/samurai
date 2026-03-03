@@ -153,6 +153,14 @@ func identityFactory(w W) W {
 // Use RunWith when you want callbacks to receive a custom type (e.g. an assertion helper).
 // Embed *BaseContext in your custom type to satisfy the Context constraint.
 //
+// The factory receives a *BaseContext whose Context() method returns the scope's
+// context.Context, enabling initialization that requires a context:
+//
+//	samurai.RunWith(t, func(w samurai.W) *MyCtx {
+//	    ctx := w.Context()
+//	    return &MyCtx{BaseContext: w, db: connectDB(ctx)}
+//	}, builder)
+//
 // Example:
 //
 //	type MyCtx struct {
