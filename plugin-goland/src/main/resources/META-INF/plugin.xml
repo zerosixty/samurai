@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.samurai.testrunner</id>
     <name>Samurai Test Runner</name>
-    <version>0.3.0</version>
+    <version>0.5.0</version>
     <vendor url="https://github.com/zerosixty/samurai" email="zerosixty@users.noreply.github.com">zerosixty</vendor>
 
     <description><![CDATA[
@@ -24,7 +24,7 @@
     ]]></description>
 
     <change-notes><![CDATA[
-        <b>0.3.0</b>
+        <b>0.5.0</b>
         <ul>
             <li>Removed upper version bound — now compatible with GoLand 2025.3 and all future versions</li>
         </ul>
