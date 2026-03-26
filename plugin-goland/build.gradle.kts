@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.samurai"
-version = providers.environmentVariable("PLUGIN_VERSION").getOrElse("0.2.0")
+version = providers.environmentVariable("PLUGIN_VERSION").getOrElse("0.3.0")
 
 repositories {
     mavenCentral()
@@ -37,7 +37,7 @@ intellijPlatform {
     pluginConfiguration {
         ideaVersion {
             sinceBuild = "253"
-            untilBuild = "253.*"
+            untilBuild = provider { null }
         }
     }
 
