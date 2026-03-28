@@ -196,18 +196,15 @@ samurai.Run(t, func(s *samurai.Scope) {
         var user *User
 
         s.Test("create user", func(ctx context.Context, w samurai.W) {
-            user, _ = svc.Create(ctx, "test@example.com")
+            var err error
+            user, err = svc.Create(ctx, "test@example.com")
+            assert.NoError(w.Testing(), err)
+            assert.Equal(w.Testing(), "test@example.com", user.Email)
+            assert.NotZero(w.Testing(), user.ID)
         }, func(s *samurai.Scope) {
-            s.Test("has correct email", func(_ context.Context, w samurai.W) {
-                assert.Equal(w.Testing(), "test@example.com", user.Email)
-            })
-
-            s.Test("has an ID", func(_ context.Context, w samurai.W) {
-                assert.NotZero(w.Testing(), user.ID)
-            })
-
             s.Test("then deleting", func(ctx context.Context, w samurai.W) {
-                svc.Delete(ctx, user.ID)
+                err := svc.Delete(ctx, user.ID)
+                assert.NoError(w.Testing(), err)
             }, func(s *samurai.Scope) {
                 s.Test("no longer exists", func(ctx context.Context, w samurai.W) {
                     _, err := svc.Get(ctx, user.ID)
@@ -225,7 +222,7 @@ samurai.Run(t, func(s *samurai.Scope) {
 })
 ```
 
-Each `Test` name creates a level. The path `with service/create user/has correct email` runs: "with service" setup, then "create user" setup, then the email assertion.
+Each `Test` name creates a level. The path `with service/create user/then deleting/no longer exists` runs: "with service" setup, then "create user", then "then deleting", then the existence check. Note that assertions for "create user" are in the same callback — child Tests are only for new actions like "then deleting".
 
 ### Two-phase execution
 
@@ -260,14 +257,13 @@ samurai.Run(t, func(s *samurai.Scope) {
     s.Test("with database", func(ctx context.Context, w samurai.W) {
         /* setup DB */
     }, func(s *samurai.Scope) {
-        s.Test("users", func(_ context.Context, w samurai.W) {
-            /* create user */
-        }, func(s *samurai.Scope) {
-            s.Test("has email", func(_ context.Context, w samurai.W) { /* assert */ })
-            s.Test("has name", func(_ context.Context, w samurai.W) { /* assert */ })
+        s.Test("create user", func(_ context.Context, w samurai.W) {
+            /* create user + assert fields */
         })
 
-        s.Test("can query", func(_ context.Context, w samurai.W) { /* assert */ })
+        s.Test("can query", func(_ context.Context, w samurai.W) {
+            /* query + assert results */
+        })
     })
 })
 ```
@@ -277,25 +273,21 @@ Samurai produces:
 ```
 Builder tree:                       Discovered paths:
 
-  Root                              1. with database/users/has email
-  └── Test "with database"          2. with database/users/has name
-      ├── Test "users"              3. with database/can query
-      │   ├── Test "has email"
-      │   └── Test "has name"       Execution (each path runs fresh):
-      └── Test "can query"
-                                    Path 1: setup DB → create user → assert email
-                                    Path 2: setup DB → create user → assert name
-                                    Path 3: setup DB → assert query
+  Root                              1. with database/create user
+  └── Test "with database"          2. with database/can query
+      ├── Test "create user"
+      └── Test "can query"          Execution (each path runs fresh):
+
+                                    Path 1: setup DB → create user + assert
+                                    Path 2: setup DB → query + assert
 ```
 
 These become nested `t.Run` calls:
 
 ```
 t.Run("with database", ...)           // intermediate scope
-    t.Run("users", ...)               // intermediate scope
-        t.Run("has email", ...)       // leaf - executes Path 1
-        t.Run("has name", ...)        // leaf - executes Path 2
-    t.Run("can query", ...)           // leaf - executes Path 3
+    t.Run("create user", ...)         // leaf - executes Path 1
+    t.Run("can query", ...)           // leaf - executes Path 2
 ```
 
 Each path re-executes the full chain from root to leaf.
@@ -423,20 +415,11 @@ func TestUserService(t *testing.T) {
             svc = NewUserService(db)
             c.Cleanup(func() { db.Close() })
         }, func(s *S) {
-            var user *User
-
             s.Test("create user", func(ctx context.Context, c *MyCtx) {
-                var err error
-                user, err = svc.Create(ctx, "samurai@example.com")
+                user, err := svc.Create(ctx, "samurai@example.com")
                 c.NoError(err)
-            }, func(s *S) {
-                s.Test("has the correct email", func(_ context.Context, c *MyCtx) {
-                    c.Equal("samurai@example.com", user.Email)
-                })
-
-                s.Test("has a non-zero ID", func(_ context.Context, c *MyCtx) {
-                    c.NotZero(user.ID)
-                })
+                c.Equal("samurai@example.com", user.Email)
+                c.NotZero(user.ID)
             })
 
             s.Test("list empty", func(ctx context.Context, c *MyCtx) {
@@ -487,7 +470,7 @@ samurai.RunWith(t, func(w samurai.W) *testEnv {
 Samurai emits nested `t.Run` calls, so IDE test runners and `-run` flags work as expected:
 
 ```bash
-go test -run "TestUserService/with_service/create_user/has_the_correct_email" -v
+go test -run "TestUserService/with_service/create_user" -v
 ```
 
 ### GoLand plugin
@@ -508,14 +491,10 @@ GoLand and VS Code show the green play button next to test functions. Test outpu
 === RUN   TestUserService
 === RUN   TestUserService/with_service
 === RUN   TestUserService/with_service/create_user
-=== RUN   TestUserService/with_service/create_user/has_the_correct_email
-=== RUN   TestUserService/with_service/create_user/has_a_non-zero_ID
 === RUN   TestUserService/with_service/list_empty
 --- PASS: TestUserService (0.00s)
     --- PASS: TestUserService/with_service (0.00s)
         --- PASS: TestUserService/with_service/create_user (0.00s)
-            --- PASS: TestUserService/with_service/create_user/has_the_correct_email (0.00s)
-            --- PASS: TestUserService/with_service/create_user/has_a_non-zero_ID (0.00s)
         --- PASS: TestUserService/with_service/list_empty (0.00s)
 ```
 

@@ -95,18 +95,10 @@ Run(t, func(s *Scope) {
         db = setupDB(ctx)
         w.Cleanup(func() { db.Close() })
     }, func(s *Scope) {
-        var user *User
-
         s.Test("create user", func(_ context.Context, w W) {
-            user = db.CreateUser("test@example.com")
-        }, func(s *Scope) {
-            s.Test("has email", func(_ context.Context, w W) {
-                assert.Equal(w.Testing(), "test@example.com", user.Email)
-            })
-
-            s.Test("has name", func(_ context.Context, w W) {
-                assert.NotEmpty(w.Testing(), user.Name)
-            })
+            user := db.CreateUser("test@example.com")
+            assert.Equal(w.Testing(), "test@example.com", user.Email)
+            assert.NotEmpty(w.Testing(), user.Name)
         })
 
         s.Test("can query all", func(_ context.Context, w W) {
@@ -163,14 +155,9 @@ samurai.RunWith(t, func(w samurai.W) *MyCtx {
         db = setupDB(ctx)
         c.Cleanup(func() { db.Close() })
     }, func(s *S) {
-        var user *User
-
         s.Test("create user", func(_ context.Context, c *MyCtx) {
-            user = db.CreateUser("test@example.com")
-        }, func(s *S) {
-            s.Test("has email", func(_ context.Context, c *MyCtx) {
-                c.Equal("test@example.com", user.Email)  // direct from *assert.Assertions
-            })
+            user := db.CreateUser("test@example.com")
+            c.Equal("test@example.com", user.Email)  // direct from *assert.Assertions
         })
     })
 })
@@ -197,18 +184,20 @@ Run(t, func(s *Scope) {
         db = createTestDB(ctx)
         w.Cleanup(func() { db.Drop() })
     }, func(s *Scope) {
-        var user *User
         s.Test("create user", func(_ context.Context, w W) {
-            user = db.CreateUser("test@example.com")
-        }, func(s *Scope) {
-            s.Test("has email", func(_ context.Context, w W) { ... })  // gets its own db, its own user
-            s.Test("has role", func(_ context.Context, w W) { ... })   // gets its own db, its own user
+            user := db.CreateUser("test@example.com")
+            assert.NotEmpty(w.Testing(), user.Email) // assert in same Test as the action
+        })
+
+        s.Test("list users", func(_ context.Context, w W) {
+            users := db.ListAll()                    // gets its own db — isolated from "create user"
+            assert.Empty(w.Testing(), users)
         })
     })
 })
 ```
 
-Each leaf `Test` is a separate path. The entire builder re-runs from scratch for each path, so each gets its own `db` and `user`. If parent `Test` callbacks ran only once and sibling leaves shared the same `db`, they'd operate on the same database concurrently — breaking isolation entirely.
+Each leaf `Test` is a separate path. The entire builder re-runs from scratch for each path, so each gets its own `db`. If parent `Test` callbacks ran only once and sibling leaves shared the same `db`, they'd operate on the same database concurrently — breaking isolation entirely.
 
 The re-execution is a one-time learning cost. Once users understand the execution model, the API reads naturally.
 
