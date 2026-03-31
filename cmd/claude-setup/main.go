@@ -4,8 +4,8 @@
 //
 //	go run github.com/zerosixty/samurai/cmd/claude-setup@latest
 //
-// It creates .claude/skills/samurai/SKILL.md so Claude Code understands
-// the samurai API when writing or modifying tests.
+// It creates .claude/skills/samurai/ with SKILL.md, api.md and pitfalls.md
+// so Claude Code understands the samurai API when writing or modifying tests.
 package main
 
 import (
@@ -16,10 +16,16 @@ import (
 	"strings"
 )
 
-//go:embed samurai.md
+//go:embed skill/SKILL.md
 var skillContent string
 
-const version = "1"
+//go:embed skill/api.md
+var apiContent string
+
+//go:embed skill/pitfalls.md
+var pitfallsContent string
+
+const version = "2"
 const versionMarker = "<!-- samurai-skill-v"
 
 func main() {
@@ -48,13 +54,25 @@ func main() {
 		fatal("cannot create .claude/skills/samurai/: %v", err)
 	}
 
-	content := skillContent + "\n" + versionMarker + version + " -->\n"
-
-	if err := os.WriteFile(skillFile, []byte(content), 0o644); err != nil {
-		fatal("cannot write SKILL.md: %v", err)
+	// Write all skill files.
+	files := map[string]string{
+		"SKILL.md":    skillContent + "\n" + versionMarker + version + " -->\n",
+		"api.md":      apiContent,
+		"pitfalls.md": pitfallsContent,
 	}
 
-	fmt.Println("Created .claude/skills/samurai/SKILL.md")
+	for name, content := range files {
+		path := filepath.Join(skillDir, name)
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+			fatal("cannot write %s: %v", name, err)
+		}
+	}
+
+	// Clean up old single-file layout (v1).
+	oldSamurai := filepath.Join(skillDir, "samurai.md")
+	os.Remove(oldSamurai) // ignore error — may not exist
+
+	fmt.Println("Created .claude/skills/samurai/ (SKILL.md, api.md, pitfalls.md)")
 	fmt.Println("Claude Code will use samurai context when working with tests.")
 	fmt.Println("Invoke /samurai to load the reference manually.")
 }
