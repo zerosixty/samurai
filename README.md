@@ -12,7 +12,7 @@ Scoped testing for Go.
 ![Zero Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)
 [![GoLand Plugin](https://img.shields.io/jetbrains/plugin/v/30391-samurai-test-runner?label=GoLand%20Plugin&logo=jetbrains&color=orange)](https://plugins.jetbrains.com/plugin/30391-samurai-test-runner)
 
-A scoped testing framework for Go with path isolation. You define a test tree using a single `Test()` method, the framework discovers all leaf paths, then runs each one independently with fresh local variables. Parallel by default via `t.Parallel()`. Zero dependencies, bring your own assertion library.
+A scoped testing framework for Go with path isolation. You define a test tree using a single `Test()` method, the framework discovers all leaf paths, then runs each one independently with fresh local variables. Parallel by default via `t.Parallel()` — including the top-level `TestXxx` function itself, so tests in the same package run concurrently without a per-test boilerplate call. Zero dependencies, bring your own assertion library.
 
 ## Why "samurai"? *(as Yoda would say)*
 
@@ -22,7 +22,7 @@ No goal, a samurai has. Only the path. Each test -- a samurai it is, following i
 
 You write a builder function that describes a tree of tests. Samurai runs the builder once in discovery mode to collect all the paths from root to leaf. Then, for each path, it runs the builder again from scratch in execution mode. Because the builder re-runs per path, local variables (`var db *DB`, `var user *User`, etc.) are fresh allocations every time. Paths can't interfere with each other.
 
-All paths call `t.Parallel()` by default, so they run concurrently. There's no goroutine-local storage or global state involved. You bring your own assertion library ([testify](https://github.com/stretchr/testify), [is](https://github.com/matryer/is), plain `t.Error`, whatever). Cleanups registered via `w.Cleanup()` run in LIFO order even if the test panics.
+All paths call `t.Parallel()` by default — both the top-level `TestXxx` and every samurai-emitted subtest — so they run concurrently. There's no goroutine-local storage or global state involved. You bring your own assertion library ([testify](https://github.com/stretchr/testify), [is](https://github.com/matryer/is), plain `t.Error`, whatever). Cleanups registered via `w.Cleanup()` run in LIFO order even if the test panics.
 
 ## Install
 
@@ -319,7 +319,7 @@ Call order doesn't matter — `Skip()` affects the entire scope regardless of wh
 
 ### Parallel (default)
 
-Tests run in parallel via `t.Parallel()`. Control concurrency with:
+Both the top-level `TestXxx` function and every samurai-emitted subtest are marked `t.Parallel()` automatically. You do **not** need to write `t.Parallel()` at the top of your test function — samurai does it for you. Control overall concurrency with:
 
 ```bash
 go test -parallel 4 ./...
@@ -337,7 +337,11 @@ samurai.Run(t, func(s *samurai.Scope) {
 }, samurai.Sequential())
 ```
 
-Useful when tests modify global state or hit resources that don't handle concurrent access.
+With `Sequential()`, neither the top-level `t` nor any sub-`t` is marked parallel. Use it when your test uses `t.Setenv`, binds a fixed network port, touches shared global state, or otherwise cannot run concurrently with its package peers.
+
+### Migrating from earlier versions
+
+Starting from the version that introduced top-level auto-parallel, samurai calls `t.Parallel()` on the top-level test itself. If you were writing `t.Parallel()` as the first line of a `TestXxx` that uses `samurai.Run` / `samurai.RunWith`, **remove those manual calls** — Go's runtime panics with `t.Parallel called multiple times` when the same `*testing.T` is marked parallel twice. A quick grep-and-delete covers it. Tests that can't tolerate parallelism should instead pass `samurai.Sequential()`.
 
 ## Cleanup
 

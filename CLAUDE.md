@@ -9,7 +9,7 @@ Samurai is a scoped testing framework for Go with path isolation, inspired by Go
 - Standard context.Context support for cancellation/timeouts
 - Assertion-library agnostic (users bring their own)
 - Zero external dependencies
-- Parallel execution by default
+- Parallel execution by default — including the top-level `TestXxx` function, not just samurai-generated sub-tests. Pass `samurai.Sequential()` to opt out (required for tests that use `t.Setenv`, bind fixed ports, etc.)
 - No double execution - code runs exactly once per test path
 - Generic `RunWith` for custom test contexts via embedded `*BaseContext` (Go 1.25+ generic type aliases)
 

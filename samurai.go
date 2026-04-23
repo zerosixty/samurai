@@ -5,7 +5,8 @@
 //   - Standard context.Context support for cancellation/timeouts
 //   - Assertion-library agnostic (users bring their own)
 //   - Zero external dependencies
-//   - Parallel execution by default
+//   - Parallel execution by default — including the top-level TestXxx
+//     function, not just its samurai-generated sub-tests
 //   - No double execution - code runs exactly once per test path
 //
 // # Usage
@@ -84,6 +85,11 @@
 //   - The testing.T instance is per-path (Go's t.Run creates subtests)
 //   - context.Context is shared within a path but immutable
 //
+// Because the top-level TestXxx is also marked t.Parallel(), tests in the
+// same Go package run concurrently. Pass Sequential() when a test uses
+// t.Setenv, binds a fixed port, or otherwise cannot tolerate sibling tests
+// running alongside it.
+//
 // # IDE Integration
 //
 // Paths are emitted as nested t.Run calls mirroring the test tree structure.
@@ -106,8 +112,16 @@ type runConfig struct {
 }
 
 // Sequential forces sequential execution.
-// Use this when tests require deterministic execution order.
-// By default, tests run in parallel using t.Parallel().
+//
+// Use this when tests require deterministic execution order or cannot run
+// concurrently with sibling tests — common triggers are t.Setenv, binding
+// fixed network ports, or touching shared global state.
+//
+// With Sequential():
+//   - The top-level TestXxx is NOT marked t.Parallel() by samurai.
+//   - None of the samurai-emitted sub-t values are marked t.Parallel().
+//
+// By default, tests run in parallel at every level using t.Parallel().
 func Sequential() Option {
 	return func(cfg *runConfig) {
 		cfg.sequential = true
@@ -117,6 +131,10 @@ func Sequential() Option {
 // Parallel explicitly enables parallel execution using t.Parallel().
 // This is the default behavior, so Parallel() is only needed to override
 // a previous Sequential() call or for documentation purposes.
+//
+// Both the top-level TestXxx and every samurai-generated sub-t are marked
+// parallel — adopters do not need to call t.Parallel() manually in their
+// test function.
 //
 // To control the number of parallel tests, use the standard Go test flag:
 //
@@ -194,6 +212,16 @@ func RunWith[V Context](t *testing.T, factory func(W) V, builder func(*TestScope
 	cfg := &runConfig{}
 	for _, opt := range opts {
 		opt(cfg)
+	}
+
+	// Mark the top-level test parallel too. executeTree already marks each
+	// samurai-generated sub-t parallel; without this line, the top-level
+	// TestXxx stays serial relative to its package peers and callers have
+	// to write t.Parallel() manually at the top of every test function.
+	// Sequential() opts out.
+	if !cfg.sequential {
+		t.Helper()
+		t.Parallel()
 	}
 
 	// Phase 1: Collect paths by dry-running the builder in discovery mode

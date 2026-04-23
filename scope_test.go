@@ -637,6 +637,46 @@ func TestScopeDiscoveryPanicRecovery(t *testing.T) {
 	}
 }
 
+// --- Top-level t.Parallel() auto-call tests ---
+
+// TestRunMarksTopLevelParallel verifies that samurai.Run marks the top-level
+// *testing.T as parallel unless Sequential() is passed. The test uses Go's
+// own invariant — calling t.Parallel() twice on the same *testing.T panics
+// with "t.Parallel called multiple times" — as a deterministic oracle.
+func TestRunMarksTopLevelParallel(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Error("expected panic from second t.Parallel() — samurai did not mark top-level t parallel")
+			return
+		}
+		if !strings.Contains(fmt.Sprint(r), "t.Parallel called multiple times") {
+			t.Errorf("unexpected panic: %v", r)
+		}
+	}()
+
+	Run(t, func(s *Scope) {
+		s.Test("x", func(_ context.Context, _ W) {})
+	})
+
+	// samurai.Run has already called t.Parallel() internally — a second call
+	// must panic. If it does not, samurai failed to parallelize the top-level.
+	t.Parallel()
+}
+
+// TestRunSequentialDoesNotMarkTopLevelParallel verifies that Sequential()
+// suppresses the auto-parallel call on the top-level t. The explicit
+// t.Parallel() below must succeed (no panic) — proving samurai left the
+// top-level t alone.
+func TestRunSequentialDoesNotMarkTopLevelParallel(t *testing.T) {
+	Run(t, func(s *Scope) {
+		s.Test("x", func(_ context.Context, _ W) {})
+	}, Sequential())
+
+	// Must succeed — Sequential() means samurai did NOT mark t parallel.
+	t.Parallel()
+}
+
 // --- Conflicting options test ---
 
 func TestScopeConflictingOptionsLastWins(t *testing.T) {
