@@ -40,6 +40,8 @@ func TestFeature(t *testing.T) {
         })
     })
 }
+
+func openDB(ctx context.Context) *DB { /* ... */ } // 9. helpers BELOW TestFeature, never above
 ```
 
 ## RunWith (Custom Context)
@@ -62,6 +64,8 @@ func TestWithAssertions(t *testing.T) {
         })
     })
 }
+
+// methods on *MyCtx and other helpers go HERE, below the Test function
 ```
 
 Factory `func(W) V` is called once per test path. The same value is reused across all scope levels in that path.

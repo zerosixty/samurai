@@ -17,6 +17,16 @@ description: "Samurai scoped testing framework for Go (github.com/zerosixty/samu
 - Parallel by default; `samurai.Sequential()` forces order; `go test -parallel N` controls concurrency
 - Assertion-agnostic: use `w.Testing()` with any library (testify, is, stdlib)
 
+## File layout
+
+For samurai test files, top-to-bottom:
+
+1. Context type (`type fooCtx struct {...}`) + `samurai.TestScope` alias — RunWith only
+2. `func Test*` — body contains the `samurai.Run`/`RunWith` call and the `s.Test(...)` tree. **Inline** the factory closure (`func(w samurai.W) *fooCtx { ... }`) inside `RunWith`; never extract it to a named function passed by reference. Helper calls *inside* the factory body (e.g. `newBaseCtx(w)`, fixture builders) are fine — the rule is about the factory closure itself, not what it calls.
+3. Methods on `*fooCtx` and other private helpers **defined in this file** — always **below** the Test function, never prepended (shared cross-file helpers in the same package are out of scope)
+
+Rationale: tests on top so the file's contract is visible immediately; setup is local to its single caller; helpers are appendix.
+
 ## When to Use
 
 USE samurai when ALL of these hold:
@@ -26,14 +36,22 @@ USE samurai when ALL of these hold:
 
 Detect candidates at two levels:
 - **Within one function** — non-samurai test with nested `t.Run` where parent mutates state and 2+ children branch -> candidate for samurai
-- **Across functions** — group `TestFunc_*` by feature; if later functions repeat ALL actions of earlier ones plus add diverging steps (hidden tree with duplicated action chains) -> candidate for samurai consolidation. Do NOT flag when tests call the same endpoint with different configurations (variants, not a tree)
+- **Across functions** — group `TestFunc_*` by feature; if later functions repeat earlier ones' **state-mutating** actions (writes/RPC mutations/DB inserts) plus add diverging steps -> candidate. DO NOT flag: repeated read chains (data dup, not state tree); same endpoint with different inputs (variants, not branches)
 
 DO NOT use samurai when ANY of these hold:
-1. **Read-only subtests**: branches only query shared state without mutating it
+1. **Read-only subtests**: branches only query shared state without mutating it. `Get → extract id → Get` chains are data extraction, not state trees — chain length is irrelevant
 2. **Sequential accumulation**: each step depends on cumulative effects of ALL prior steps (linear chain, not branching)
 3. **Same action, different inputs**: multiple tests call the same endpoint with different configurations — no test repeats another's actions as a prefix
 4. **Flat/independent**: each subtest creates its own complete setup
 5. **Existing isolation**: test already uses Ginkgo `BeforeEach` or similar
+
+Common false positives: `_HappyPath` / `_AccessDenied` siblings (access-denied uses fresh setup + bad input — rule #3); long read-only flow chains (rule #1); N tests sharing a `createApp()`/`insertFixtures()` helper (rule #4).
+
+### Detection protocol
+
+1. **Read bodies, not names.** `Test_X_HappyPath` is not evidence.
+2. **Swap-order test.** If two tests can be reordered with no effect, they are flat — not a tree.
+3. **Find the writes.** No mutating step in any sibling → samurai adds nothing.
 
 Cost: samurai re-executes the full path per leaf — same cost as manually duplicating setup, just automated. Parallel execution offsets wall-clock time.
 
@@ -41,3 +59,5 @@ Cost: samurai re-executes the full path per leaf — same cost as manually dupli
 
 - For the full API example (samurai.Run) and RunWith (custom context), see [api.md](api.md)
 - For validation rules (panic conditions) and wrong patterns, see [pitfalls.md](pitfalls.md)
+
+<!-- samurai-skill-v2 -->
