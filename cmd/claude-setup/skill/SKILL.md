@@ -22,10 +22,10 @@ description: "Samurai scoped testing framework for Go (github.com/zerosixty/samu
 For samurai test files, top-to-bottom:
 
 1. Context type (`type fooCtx struct {...}`) + `samurai.TestScope` alias — RunWith only
-2. `func Test*` — body contains the `samurai.Run`/`RunWith` call and the `s.Test(...)` tree. **Inline** the factory closure (`func(w samurai.W) *fooCtx { ... }`) inside `RunWith`; never extract it to a named function passed by reference. Helper calls *inside* the factory body (e.g. `newBaseCtx(w)`, fixture builders) are fine — the rule is about the factory closure itself, not what it calls.
+2. `func Test*` — body contains the `samurai.Run`/`RunWith` call and the `s.Test(...)` tree. **Prefer inlining** the factory closure (`func(w samurai.W) *fooCtx { ... }`) inside `RunWith`. **Extract** to a private function in the same file (placed with the helpers, below the Tests) only when 2+ Test functions need identical factory logic — at that point duplication outweighs locality. Helper calls *inside* an inlined factory body (e.g. `newBaseCtx(w)`, fixture builders) are fine either way.
 3. Methods on `*fooCtx` and other private helpers **defined in this file** — always **below** the Test function, never prepended (shared cross-file helpers in the same package are out of scope)
 
-Rationale: tests on top so the file's contract is visible immediately; setup is local to its single caller; helpers are appendix.
+Rationale: tests on top so the file's contract is visible immediately; setup stays local when it has a single caller, and graduates to a helper when it doesn't; helpers are appendix.
 
 ## When to Use
 
@@ -60,4 +60,4 @@ Cost: samurai re-executes the full path per leaf — same cost as manually dupli
 - For the full API example (samurai.Run) and RunWith (custom context), see [api.md](api.md)
 - For validation rules (panic conditions) and wrong patterns, see [pitfalls.md](pitfalls.md)
 
-<!-- samurai-skill-v2 -->
+<!-- samurai-skill-v3 -->
