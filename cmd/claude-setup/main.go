@@ -25,7 +25,7 @@ var apiContent string
 //go:embed skill/pitfalls.md
 var pitfallsContent string
 
-const version = "2"
+const version = "3"
 const versionMarker = "<!-- samurai-skill-v"
 
 func main() {
