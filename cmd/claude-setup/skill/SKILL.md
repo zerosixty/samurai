@@ -43,7 +43,6 @@ DO NOT use samurai when ANY of these hold:
 2. **Sequential accumulation**: each step depends on cumulative effects of ALL prior steps (linear chain, not branching)
 3. **Same action, different inputs**: multiple tests call the same endpoint with different configurations — no test repeats another's actions as a prefix
 4. **Flat/independent**: each subtest creates its own complete setup
-5. **Existing isolation**: test already uses Ginkgo `BeforeEach` or similar
 
 Common false positives: `_HappyPath` / `_AccessDenied` siblings (access-denied uses fresh setup + bad input — rule #3); long read-only flow chains (rule #1); N tests sharing a `createApp()`/`insertFixtures()` helper (rule #4).
 
