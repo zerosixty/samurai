@@ -6,7 +6,9 @@
 
 Scoped testing for Go.
 
+[![CI](https://github.com/zerosixty/samurai/actions/workflows/ci.yml/badge.svg)](https://github.com/zerosixty/samurai/actions/workflows/ci.yml)
 [![Go Reference](https://pkg.go.dev/badge/github.com/zerosixty/samurai.svg)](https://pkg.go.dev/github.com/zerosixty/samurai)
+[![Go Report Card](https://goreportcard.com/badge/github.com/zerosixty/samurai)](https://goreportcard.com/report/github.com/zerosixty/samurai)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?logo=go&logoColor=white)
 ![Zero Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)
