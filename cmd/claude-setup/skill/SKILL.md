@@ -5,6 +5,9 @@ description: "Samurai scoped testing framework for Go (github.com/zerosixty/samu
 
 # Samurai Test Writing Rules
 
+**Good For:** Go tests with a branching state-mutating tree (≥3 leaf paths, mutually exclusive siblings) using `samurai.Run` / `samurai.RunWith`.
+**Bad For:** read-only chains, sequential accumulation, same-action-different-input variants, flat independent tests (see "When to Use" below for full criteria).
+
 ## Rules
 
 - One action + its assertions = one `Test()`. Don't split assertions into child Tests — assert the result in the same callback that produced it. Child Tests are for new actions (setup, mutations, queries), not for checking fields of a parent's result
@@ -54,9 +57,7 @@ Common false positives: `_HappyPath` / `_AccessDenied` siblings (access-denied u
 
 Cost: samurai re-executes the full path per leaf — same cost as manually duplicating setup, just automated. Parallel execution offsets wall-clock time.
 
-## Additional resources
+## Additional resources (lazy-load — read only when triggered)
 
-- For the full API example (samurai.Run) and RunWith (custom context), see [api.md](api.md)
-- For validation rules (panic conditions) and wrong patterns, see [pitfalls.md](pitfalls.md)
-
-<!-- samurai-skill-v3 -->
+- **Read [api.md](api.md) only when** you need the worked-out `samurai.Run` / `RunWith` API example (e.g. wiring a new test scope, writing a custom context type for `RunWith`). The "When to Use" / "Detection protocol" sections above are sufficient for review and detection work.
+- **Read [pitfalls.md](pitfalls.md) only when** debugging a panic, a validation error, or a wrong pattern (e.g. asserting on a parent's result inside a child Test, declaring vars where they should be assigned). Skip otherwise — the rules above already cover the common authoring decisions.
