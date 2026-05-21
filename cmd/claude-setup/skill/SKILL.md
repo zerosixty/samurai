@@ -30,6 +30,12 @@ For samurai test files, top-to-bottom:
 
 Rationale: tests on top so the file's contract is visible immediately; setup stays local when it has a single caller, and graduates to a helper when it doesn't; helpers are appendix.
 
+### Keep related scenarios in one tree
+
+Decision test: does one scenario's mutation produce the state another scenario reads back? If yes, they belong in the same file and the same `RunWith` tree — the shared mutation is the parent, the divergent read-backs are the leaves (grant → "read shows present" vs. revoke → "read shows absent"). This is the branching state-mutating tree samurai exists for.
+
+Splitting such scenarios one-file-per-action duplicates the setup and the context type and hides the grant/revoke/read-back relationship behind file boundaries. Independent features — where no scenario observes another's mutation — still get their own files.
+
 ## When to Use
 
 USE samurai when ALL of these hold:
