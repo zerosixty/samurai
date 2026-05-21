@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 )
 
@@ -25,8 +26,17 @@ var apiContent string
 //go:embed skill/pitfalls.md
 var pitfallsContent string
 
-const version = "3"
-const versionMarker = "<!-- samurai-skill-v"
+const versionMarker = "<!-- samurai-skill-"
+
+// skillVersion returns the samurai module release this binary was built from
+// (the git tag, e.g. "v0.4.0"), used to mark and detect installed skill files.
+// When run from a local checkout (no module version), it falls back to "dev".
+func skillVersion() string {
+	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
+		return info.Main.Version
+	}
+	return "dev"
+}
 
 func main() {
 	dir, err := os.Getwd()
@@ -43,8 +53,8 @@ func main() {
 
 	// Check if already installed and up to date.
 	if existing, err := os.ReadFile(skillFile); err == nil {
-		if strings.Contains(string(existing), versionMarker+version+" -->") {
-			fmt.Println("samurai skill is already up to date (v" + version + ")")
+		if strings.Contains(string(existing), versionMarker+skillVersion()+" -->") {
+			fmt.Println("samurai skill is already up to date (" + skillVersion() + ")")
 			return
 		}
 		fmt.Println("Updating samurai skill...")
@@ -56,7 +66,7 @@ func main() {
 
 	// Write all skill files.
 	files := map[string]string{
-		"SKILL.md":    skillContent + "\n" + versionMarker + version + " -->\n",
+		"SKILL.md":    skillContent + "\n" + versionMarker + skillVersion() + " -->\n",
 		"api.md":      apiContent,
 		"pitfalls.md": pitfallsContent,
 	}
