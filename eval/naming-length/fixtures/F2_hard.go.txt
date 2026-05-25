@@ -1,0 +1,41 @@
+package providers_test
+
+import (
+	"context"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/zerosixty/samurai"
+)
+
+func TestProviderCreation(t *testing.T) {
+	samurai.Run(t, func(s *samurai.Scope) {
+		var svc *ProviderService
+		var existing *Provider
+
+		s.Test("admin creates a new provider", func(ctx context.Context, w samurai.W) {
+			svc = newProviderService(ctx)
+			var err error
+			existing, err = svc.CreateProvider(ctx, "Acme Inc")
+			assert.NoError(w.Testing(), err)
+			assert.NotEmpty(w.Testing(), existing.ID)
+		}, func(s *samurai.Scope) {
+			s.Test("err is not nil for duplicate name", func(ctx context.Context, w samurai.W) {
+				_, err := svc.CreateProvider(ctx, "Acme Inc")
+				assert.Error(w.Testing(), err)
+			})
+
+			s.Test("the new provider has the requested name", func(ctx context.Context, w samurai.W) {
+				found, err := svc.GetProvider(ctx, existing.ID)
+				assert.NoError(w.Testing(), err)
+				assert.Equal(w.Testing(), "Acme Inc", found.Name)
+			})
+
+			s.Test("audits include the change", func(ctx context.Context, w samurai.W) {
+				_, _ = svc.RenameProvider(ctx, existing.ID, "Acme Holdings")
+				entries := svc.AuditLog(ctx, existing.ID)
+				assert.NotEmpty(w.Testing(), entries)
+			})
+		})
+	})
+}

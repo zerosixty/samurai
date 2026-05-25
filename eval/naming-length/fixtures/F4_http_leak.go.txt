@@ -1,0 +1,37 @@
+package httpapi_test
+
+import (
+	"context"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/zerosixty/samurai"
+)
+
+func TestProvidersAPI(t *testing.T) {
+	samurai.Run(t, func(s *samurai.Scope) {
+		var client *TestClient
+
+		s.Test("POST /providers returns 201", func(ctx context.Context, w samurai.W) {
+			client = newTestClient(ctx)
+			resp := client.PostJSON("/providers", map[string]any{"name": "Acme"})
+			assert.Equal(w.Testing(), 201, resp.StatusCode)
+		}, func(s *samurai.Scope) {
+			s.Test("returns 409 on duplicate name", func(ctx context.Context, w samurai.W) {
+				resp := client.PostJSON("/providers", map[string]any{"name": "Acme"})
+				assert.Equal(w.Testing(), 409, resp.StatusCode)
+			})
+
+			s.Test("GET /providers/:id returns 200 with body", func(ctx context.Context, w samurai.W) {
+				resp := client.Get("/providers/acme")
+				assert.Equal(w.Testing(), 200, resp.StatusCode)
+				assert.Contains(w.Testing(), resp.Body, "Acme")
+			})
+
+			s.Test("admin deletes the provider", func(ctx context.Context, w samurai.W) {
+				resp := client.Delete("/providers/acme")
+				assert.Equal(w.Testing(), 204, resp.StatusCode)
+			})
+		})
+	})
+}
