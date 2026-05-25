@@ -19,7 +19,7 @@ If you cannot identify the actor or the outcome from the body, the `Test()` is d
 | Pattern | Why it's bad | What to look at in the body instead |
 |---|---|---|
 | CamelCase token matching a Go identifier in the Test body | Couples the test name to the SUT symbol; rename of the function breaks the name | The effect of that call in domain terms |
-| Bare HTTP status code (`200 → accepts`, `404 → reports missing`, `409 → rejects duplicate id`) | Leaks the HTTP layer; the same behaviour at gRPC would be unnamable | The outcome verb the code stands for, not the code itself |
+| Bare HTTP status code (`200 → accepts`, `404 → reports missing`, `409 → rejects duplicate id`) | Couples the test name to the HTTP layer; the domain outcome reads the same regardless of how the response is shaped | The outcome verb the code stands for, not the code itself |
 | `is / equals / returns / not nil / has length / contains` describing a value | Describes the assertion, not the step | The action that produced the value; the assertion is implementation |
 | `empty / nil / with N keys / map / slice / struct` | Leaks the input data structure | The domain meaning of the input: `no past loans`, `missing preferences`, `unset filter` |
 
