@@ -1,0 +1,50 @@
+{
+  "_comment": "Each fixture lists every s.Test name and whether it should be FLAGged or stay quiet. The subagent scores against this.",
+  "fixtures": {
+    "F1_function_leak": {
+      "category": "function-method-leak",
+      "names": [
+        {"name": "CreateQuote returns a quote with id", "verdict": "FLAG", "why": "identifier leak (CreateQuote) + assertion phrasing (returns ... with)"},
+        {"name": "UpdateQuote produces audit records with matching client quote ids", "verdict": "FLAG", "why": "identifier leak (UpdateQuote)"},
+        {"name": "CancelQuote sets status to canceled", "verdict": "FLAG", "why": "identifier leak (CancelQuote) + assertion phrasing (sets status to)"}
+      ]
+    },
+    "F2_assertion_phrasing": {
+      "category": "assertion-style",
+      "names": [
+        {"name": "admin creates a new provider", "verdict": "PASS", "why": "actor + verb + outcome"},
+        {"name": "err is not nil for duplicate name", "verdict": "FLAG", "why": "assertion phrasing (err is not nil)"},
+        {"name": "count equals 1 after creation", "verdict": "FLAG", "why": "assertion phrasing (count equals 1)"},
+        {"name": "looks up the provider by id", "verdict": "PASS", "why": "action verb (looks up) + domain object"}
+      ]
+    },
+    "F3_structure_leak": {
+      "category": "data-structure-leak",
+      "names": [
+        {"name": "borrower with empty loan history", "verdict": "FLAG", "why": "structure phrasing (empty)"},
+        {"name": "returns map with 0 entries", "verdict": "FLAG", "why": "data-structure leak (map, 0 entries) + assertion phrasing (returns)"},
+        {"name": "with nil filter lists all loans across borrowers", "verdict": "FLAG", "why": "structure phrasing (nil filter)"},
+        {"name": "first loan is added to the history", "verdict": "PASS", "why": "domain outcome (loan added to history)"}
+      ]
+    },
+    "F4_http_leak": {
+      "category": "http-code-leak",
+      "names": [
+        {"name": "POST /providers returns 201", "verdict": "FLAG", "why": "HTTP method + status code"},
+        {"name": "returns 409 on duplicate name", "verdict": "FLAG", "why": "HTTP status code"},
+        {"name": "GET /providers/:id returns 200 with body", "verdict": "FLAG", "why": "HTTP method + status code"},
+        {"name": "admin deletes the provider", "verdict": "PASS", "why": "actor + verb + domain object"}
+      ]
+    },
+    "F5_good_names_control": {
+      "category": "good-names-control",
+      "names": [
+        {"name": "creditor grants a credit line to borrower", "verdict": "PASS", "why": "actor + verb + outcome"},
+        {"name": "borrower draws on the credit line", "verdict": "PASS", "why": "actor + verb + domain object"},
+        {"name": "borrower repays part of the drawn amount", "verdict": "PASS", "why": "actor + verb + outcome"},
+        {"name": "draw is rejected when limit is exceeded", "verdict": "PASS", "why": "domain outcome with domain condition"},
+        {"name": "counterparty revokes the credit line", "verdict": "PASS", "why": "actor + verb + domain object"}
+      ]
+    }
+  }
+}

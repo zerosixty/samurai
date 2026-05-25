@@ -1,0 +1,56 @@
+{
+  "_comment": "Hardened fixtures: each file mixes textbook violations, borderline cases, and clean controls. Borderline cases test whether the variant carries enough rule detail without naming.md.",
+  "fixtures": {
+    "F1_hard": {
+      "category": "identifier-leak-mixed",
+      "names": [
+        {"name": "CreateQuote returns a quote with id", "verdict": "FLAG", "kind": "textbook", "why": "CamelCase identifier (CreateQuote) + assertion phrasing (returns ... with)"},
+        {"name": "updates a quote and writes an audit", "verdict": "PASS", "kind": "clean", "why": "domain verbs (updates, writes) + domain objects; no identifier, no assertion, no structure"},
+        {"name": "the quote is updated via UpdateQuote", "verdict": "FLAG", "kind": "borderline", "why": "identifier leak (UpdateQuote) even though phrased domain-first; rule: no CamelCase Go identifiers in the name"},
+        {"name": "cancels an open quote", "verdict": "PASS", "kind": "clean", "why": "domain verb + domain object"}
+      ]
+    },
+    "F2_hard": {
+      "category": "assertion-style-mixed",
+      "names": [
+        {"name": "admin creates a new provider", "verdict": "PASS", "kind": "clean", "why": "actor + verb + outcome"},
+        {"name": "err is not nil for duplicate name", "verdict": "FLAG", "kind": "textbook", "why": "assertion phrasing (err is not nil)"},
+        {"name": "the new provider has the requested name", "verdict": "FLAG", "kind": "borderline", "why": "assertion phrasing (has the requested X) — describes the assertion value, not the step. Domain rewrite: 'provider is created with the requested name' or 'created provider preserves the submitted name'"},
+        {"name": "audits include the change", "verdict": "PASS", "kind": "clean", "why": "domain verb (include) + domain object (audits, change); 'include' is not on the assertion-verb list"}
+      ]
+    },
+    "F3_hard": {
+      "category": "structure-leak-mixed",
+      "names": [
+        {"name": "borrower with empty loan history", "verdict": "FLAG", "kind": "textbook", "why": "structure phrasing (empty) + no action"},
+        {"name": "new borrower has no past loans", "verdict": "PASS", "kind": "borderline", "why": "'no past loans' is the canonical good replacement for 'with empty loan history' per naming.md examples; describes domain state, not data shape"},
+        {"name": "first loan is added to the history", "verdict": "PASS", "kind": "clean", "why": "domain outcome (loan added to history)"},
+        {"name": "returns an empty list when filter is unset", "verdict": "FLAG", "kind": "borderline", "why": "assertion + structure phrasing (returns empty list); domain rewrite: 'unfiltered query returns all loans' or 'lists every loan when filter is unset'"}
+      ]
+    },
+    "F4_hard": {
+      "category": "http-leak-mixed",
+      "names": [
+        {"name": "POST /providers returns 201", "verdict": "FLAG", "kind": "textbook", "why": "HTTP method + status code"},
+        {"name": "admin deletes the provider", "verdict": "PASS", "kind": "clean", "why": "actor + verb + domain object"},
+        {"name": "the request is rejected for missing auth", "verdict": "PASS", "kind": "borderline", "why": "no status code, no method; 'rejected' is a domain outcome; clean even though it sits in an HTTP test file"},
+        {"name": "returns 4xx on invalid input", "verdict": "FLAG", "kind": "borderline", "why": "HTTP status range shorthand (4xx) + assertion phrasing (returns); same category as bare status codes"}
+      ]
+    },
+    "F5_hard": {
+      "category": "control-with-risky-words",
+      "names": [
+        {"name": "creditor grants a credit line", "verdict": "PASS", "kind": "clean", "why": "actor + verb + outcome"},
+        {"name": "borrower returns the equipment", "verdict": "PASS", "kind": "borderline", "why": "'returns' here is the domain verb (returning equipment), not the assertion verb describing a value. Action by an actor on a domain object"},
+        {"name": "the loan is fully repaid", "verdict": "PASS", "kind": "clean", "why": "domain outcome; 'is' here is the state-of-being copula, not an assertion verb describing a value"},
+        {"name": "borrower has insufficient collateral", "verdict": "PASS", "kind": "borderline", "why": "'has' here describes a domain condition of the actor, not an assertion about a returned value. Canonical domain phrasing"},
+        {"name": "creditor revokes access", "verdict": "PASS", "kind": "clean", "why": "actor + verb + domain object"}
+      ]
+    }
+  },
+  "totals": {
+    "by_kind": {"textbook": 5, "borderline": 7, "clean": 9},
+    "by_verdict": {"FLAG": 7, "PASS": 14},
+    "total": 21
+  }
+}

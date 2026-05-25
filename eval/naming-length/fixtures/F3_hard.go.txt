@@ -1,0 +1,39 @@
+package loans_test
+
+import (
+	"context"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/zerosixty/samurai"
+)
+
+func TestLoanHistory(t *testing.T) {
+	samurai.Run(t, func(s *samurai.Scope) {
+		var svc *LoanService
+		var borrowerID string
+
+		s.Test("borrower with empty loan history", func(ctx context.Context, w samurai.W) {
+			svc = newLoanService(ctx)
+			borrowerID = svc.RegisterBorrower(ctx, "alice")
+			loans := svc.LoanHistory(ctx, borrowerID)
+			assert.Empty(w.Testing(), loans)
+		}, func(s *samurai.Scope) {
+			s.Test("new borrower has no past loans", func(ctx context.Context, w samurai.W) {
+				loans := svc.LoanHistory(ctx, borrowerID)
+				assert.Len(w.Testing(), loans, 0)
+			})
+
+			s.Test("first loan is added to the history", func(ctx context.Context, w samurai.W) {
+				svc.IssueLoan(ctx, borrowerID, 1000)
+				loans := svc.LoanHistory(ctx, borrowerID)
+				assert.Len(w.Testing(), loans, 1)
+			})
+
+			s.Test("returns an empty list when filter is unset", func(ctx context.Context, w samurai.W) {
+				loans := svc.SearchLoans(ctx, nil)
+				assert.NotEmpty(w.Testing(), loans)
+			})
+		})
+	})
+}

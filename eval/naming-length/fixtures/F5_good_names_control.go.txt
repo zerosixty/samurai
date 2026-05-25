@@ -1,0 +1,45 @@
+package credit_test
+
+import (
+	"context"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/zerosixty/samurai"
+)
+
+func TestCreditLine(t *testing.T) {
+	samurai.Run(t, func(s *samurai.Scope) {
+		var svc *CreditService
+		var borrower, counterparty *Provider
+
+		s.Test("creditor grants a credit line to borrower", func(ctx context.Context, w samurai.W) {
+			svc = newCreditService(ctx)
+			borrower, counterparty = svc.SeedTwoProviders(ctx)
+			svc.GrantCreditLine(ctx, counterparty.ID, borrower.ID, 10_000)
+		}, func(s *samurai.Scope) {
+			s.Test("borrower draws on the credit line", func(ctx context.Context, w samurai.W) {
+				svc.Draw(ctx, borrower.ID, counterparty.ID, 3_000)
+				bal := svc.Balance(ctx, borrower.ID, counterparty.ID)
+				assert.Equal(w.Testing(), int64(7_000), bal.Available)
+			}, func(s *samurai.Scope) {
+				s.Test("borrower repays part of the drawn amount", func(ctx context.Context, w samurai.W) {
+					svc.Repay(ctx, borrower.ID, counterparty.ID, 1_000)
+					bal := svc.Balance(ctx, borrower.ID, counterparty.ID)
+					assert.Equal(w.Testing(), int64(8_000), bal.Available)
+				})
+
+				s.Test("draw is rejected when limit is exceeded", func(ctx context.Context, w samurai.W) {
+					err := svc.Draw(ctx, borrower.ID, counterparty.ID, 100_000)
+					assert.Error(w.Testing(), err)
+				})
+			})
+
+			s.Test("counterparty revokes the credit line", func(ctx context.Context, w samurai.W) {
+				svc.RevokeCreditLine(ctx, counterparty.ID, borrower.ID)
+				bal := svc.Balance(ctx, borrower.ID, counterparty.ID)
+				assert.Equal(w.Testing(), int64(0), bal.Available)
+			})
+		})
+	})
+}

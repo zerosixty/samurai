@@ -1,0 +1,38 @@
+package providers_http_test
+
+import (
+	"context"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/zerosixty/samurai"
+)
+
+func TestProvidersHTTP(t *testing.T) {
+	samurai.Run(t, func(s *samurai.Scope) {
+		var client *APIClient
+		var id string
+
+		s.Test("POST /providers returns 201", func(ctx context.Context, w samurai.W) {
+			client = newClient(ctx)
+			resp, _ := client.CreateProvider(ctx, "Acme")
+			id = resp.ID
+			assert.Equal(w.Testing(), 201, resp.Status)
+		}, func(s *samurai.Scope) {
+			s.Test("admin deletes the provider", func(ctx context.Context, w samurai.W) {
+				err := client.DeleteProvider(ctx, id)
+				assert.NoError(w.Testing(), err)
+			})
+
+			s.Test("the request is rejected for missing auth", func(ctx context.Context, w samurai.W) {
+				resp, _ := client.AsAnonymous().CreateProvider(ctx, "Beta")
+				assert.True(w.Testing(), resp.Rejected)
+			})
+
+			s.Test("returns 4xx on invalid input", func(ctx context.Context, w samurai.W) {
+				resp, _ := client.CreateProvider(ctx, "")
+				assert.GreaterOrEqual(w.Testing(), resp.Status, 400)
+			})
+		})
+	})
+}

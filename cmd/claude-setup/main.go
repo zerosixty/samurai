@@ -4,7 +4,7 @@
 //
 //	go run github.com/zerosixty/samurai/cmd/claude-setup@latest
 //
-// It creates .claude/skills/samurai/ with SKILL.md, api.md and pitfalls.md
+// It creates .claude/skills/samurai/ with SKILL.md, api.md, naming.md and pitfalls.md
 // so Claude Code understands the samurai API when writing or modifying tests.
 package main
 
@@ -22,6 +22,9 @@ var skillContent string
 
 //go:embed skill/api.md
 var apiContent string
+
+//go:embed skill/naming.md
+var namingContent string
 
 //go:embed skill/pitfalls.md
 var pitfallsContent string
@@ -74,6 +77,7 @@ func main() {
 	files := map[string]string{
 		"SKILL.md":    fmt.Sprintf("%s\n%s\n", skillContent, skillMarker(version)),
 		"api.md":      apiContent,
+		"naming.md":   namingContent,
 		"pitfalls.md": pitfallsContent,
 	}
 
@@ -88,7 +92,7 @@ func main() {
 	oldSamurai := filepath.Join(skillDir, "samurai.md")
 	os.Remove(oldSamurai) // ignore error — may not exist
 
-	fmt.Println("Created .claude/skills/samurai/ (SKILL.md, api.md, pitfalls.md)")
+	fmt.Println("Created .claude/skills/samurai/ (SKILL.md, api.md, naming.md, pitfalls.md)")
 	fmt.Println("Claude Code will use samurai context when working with tests.")
 	fmt.Println("Invoke /samurai to load the reference manually.")
 }

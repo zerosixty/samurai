@@ -1,0 +1,35 @@
+package quotes_test
+
+import (
+	"context"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/zerosixty/samurai"
+)
+
+func TestQuotes(t *testing.T) {
+	samurai.Run(t, func(s *samurai.Scope) {
+		var svc *QuoteService
+		var quote *Quote
+
+		s.Test("CreateQuote returns a quote with id", func(_ context.Context, w samurai.W) {
+			svc = newQuoteService()
+			quote = svc.CreateQuote(QuoteRequest{Amount: 100})
+			assert.NotEmpty(w.Testing(), quote.ID)
+		}, func(s *samurai.Scope) {
+			s.Test("UpdateQuote produces audit records with matching client quote ids", func(_ context.Context, w samurai.W) {
+				svc.UpdateQuote(quote.ID, QuoteUpdate{Amount: 200})
+				audits := svc.AuditLog(quote.ID)
+				assert.Len(w.Testing(), audits, 1)
+				assert.Equal(w.Testing(), quote.ClientQuoteID, audits[0].ClientQuoteID)
+			})
+
+			s.Test("CancelQuote sets status to canceled", func(_ context.Context, w samurai.W) {
+				svc.CancelQuote(quote.ID)
+				updated := svc.GetQuote(quote.ID)
+				assert.Equal(w.Testing(), "canceled", updated.Status)
+			})
+		})
+	})
+}

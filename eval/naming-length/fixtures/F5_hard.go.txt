@@ -1,0 +1,42 @@
+package credit_test
+
+import (
+	"context"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/zerosixty/samurai"
+)
+
+func TestCreditLine(t *testing.T) {
+	samurai.Run(t, func(s *samurai.Scope) {
+		var svc *CreditService
+		var lineID string
+
+		s.Test("creditor grants a credit line", func(ctx context.Context, w samurai.W) {
+			svc = newCreditService(ctx)
+			lineID = svc.GrantLine(ctx, "borrower-1", 10_000)
+			assert.NotEmpty(w.Testing(), lineID)
+		}, func(s *samurai.Scope) {
+			s.Test("borrower returns the equipment", func(ctx context.Context, w samurai.W) {
+				err := svc.ReturnEquipment(ctx, lineID)
+				assert.NoError(w.Testing(), err)
+			})
+
+			s.Test("the loan is fully repaid", func(ctx context.Context, w samurai.W) {
+				svc.Repay(ctx, lineID, 10_000)
+				assert.True(w.Testing(), svc.IsClosed(ctx, lineID))
+			})
+
+			s.Test("borrower has insufficient collateral", func(ctx context.Context, w samurai.W) {
+				ok := svc.CheckCollateral(ctx, "borrower-1", 50_000)
+				assert.False(w.Testing(), ok)
+			})
+
+			s.Test("creditor revokes access", func(ctx context.Context, w samurai.W) {
+				svc.RevokeLine(ctx, lineID)
+				assert.True(w.Testing(), svc.IsRevoked(ctx, lineID))
+			})
+		})
+	})
+}

@@ -20,6 +20,19 @@ description: "Samurai scoped testing framework for Go (github.com/zerosixty/samu
 - Parallel by default; `samurai.Sequential()` forces order; `go test -parallel N` controls concurrency
 - Assertion-agnostic: use `w.Testing()` with any library (testify, is, stdlib)
 
+## Naming
+
+Every `s.Test("name", ...)` — at every tree level — names a business action or outcome from the actor's POV. Not the function under test, the assertion, or the input shape.
+
+Forbidden patterns:
+
+- **Identifier leak** — CamelCase tokens matching Go identifiers in the Test body. `"UpdateQuote calls..."` leaks `UpdateQuote`.
+- **HTTP code leak** — bare 3-digit codes (`\b[1-5]\d{2}\b`) or `4xx/5xx` shorthand. `"returns 409"` → `"rejects duplicate id"`.
+- **Assertion phrasing** — `is / equals / returns / not nil / has length / contains`. `"err is not nil"` → `"rejects invalid signature"`.
+- **Structure phrasing** — `empty / nil / with N / map / slice / struct`. `"with empty slice"` → `"borrower has no past loans"`.
+
+Risky-looking words used in a domain-natural sense (`borrower returns the equipment`, `has insufficient collateral`, `no past loans`) are clean — only flag when the word describes the assertion, the data shape, or the identifier. Flag matches, read the body, propose 1–2 replacements. See [naming.md](naming.md) for the protocol.
+
 ## File layout
 
 For samurai test files, top-to-bottom:
@@ -66,4 +79,5 @@ Cost: samurai re-executes the full path per leaf — same cost as manually dupli
 ## Additional resources (lazy-load — read only when triggered)
 
 - **Read [api.md](api.md) only when** you need the worked-out `samurai.Run` / `RunWith` API example (e.g. wiring a new test scope, writing a custom context type for `RunWith`). The "When to Use" / "Detection protocol" sections above are sufficient for review and detection work.
+- **Read [naming.md](naming.md) only when** authoring a new `s.Test(...)` name and the right phrasing isn't obvious, or reviewing a samurai test where at least one name matches a forbidden pattern above. The inline "Naming" section is enough for clearly-good or clearly-bad names; load this when you need the actor/verb/outcome replacement protocol.
 - **Read [pitfalls.md](pitfalls.md) only when** debugging a panic, a validation error, or a wrong pattern (e.g. asserting on a parent's result inside a child Test, declaring vars where they should be assigned). Skip otherwise — the rules above already cover the common authoring decisions.
