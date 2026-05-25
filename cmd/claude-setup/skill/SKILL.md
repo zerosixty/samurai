@@ -28,7 +28,7 @@ Forbidden patterns:
 
 - **Identifier leak** — CamelCase tokens matching Go identifiers in the Test body. `"UpdateQuote calls..."` leaks `UpdateQuote`.
 - **HTTP code leak** — bare 3-digit codes (`\b[1-5]\d{2}\b`) or `4xx/5xx` shorthand. `"returns 409"` → `"rejects duplicate id"`.
-- **Assertion phrasing** — `is / equals / returns / not nil / has length / contains / has`. `"err is not nil"` → `"rejects invalid signature"`.
+- **Assertion phrasing** — `is / equals / returns / not nil / has length / contains`. `"err is not nil"` → `"rejects invalid signature"`.
 - **Structure phrasing** — `empty / nil / with N / map / slice / struct`. `"with empty slice"` → `"borrower has no past loans"`.
 
 Risky-looking words used in a domain-natural sense (`borrower returns the equipment`, `has insufficient collateral`, `no past loans`) are clean — only flag when the word describes the assertion, the data shape, or the identifier. Flag matches, read the body, propose 1–2 replacements. See [naming.md](naming.md) for the protocol.
