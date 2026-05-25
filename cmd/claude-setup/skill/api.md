@@ -25,7 +25,7 @@ func TestFeature(t *testing.T) {
                 assert.NotEmpty(w.Testing(), user.Role)  // 6. one action + assertions = one Test
             })
 
-            s.Test("list empty", func(ctx context.Context, w samurai.W) {
+            s.Test("lists no users initially", func(ctx context.Context, w samurai.W) {
                 users, err := db.ListUsers(ctx)  // 7. own db — isolated from "create user" paths
                 assert.NoError(w.Testing(), err)
                 assert.Empty(w.Testing(), users)
@@ -59,7 +59,7 @@ func TestWithAssertions(t *testing.T) {
     samurai.RunWith(t, func(w samurai.W) *MyCtx {
         return &MyCtx{BaseContext: w, Assertions: assert.New(w.Testing())}
     }, func(s *S) {
-        s.Test("check", func(_ context.Context, c *MyCtx) {
+        s.Test("the answer matches the spec", func(_ context.Context, c *MyCtx) {
             c.Equal(42, value)  // assertion methods directly on context
         })
     })

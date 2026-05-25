@@ -20,6 +20,19 @@ description: "Samurai scoped testing framework for Go (github.com/zerosixty/samu
 - Parallel by default; `samurai.Sequential()` forces order; `go test -parallel N` controls concurrency
 - Assertion-agnostic: use `w.Testing()` with any library (testify, is, stdlib)
 
+## Naming
+
+Every `s.Test("name", ...)` — top, intermediate, leaf — names a business action or outcome from the actor's point of view. Never the function under test, the assertion, or the input data shape. The same bar applies at every level of the tree.
+
+Forbidden patterns (flag and rewrite when authoring or reviewing):
+
+- **Identifier leak** — any CamelCase token that appears as a Go identifier in the Test body (function, type, method). `"UpdateQuote calls produce audit records"` leaks `UpdateQuote`.
+- **HTTP / status leak** — bare 3-digit codes matching `\b[1-5]\d{2}\b`. `"returns 409"` → `"rejects duplicate id"`.
+- **Assertion phrasing** — verbs like `is / equals / returns / not nil / has length / contains` describing the value, not the step. `"err is not nil"` → `"rejects invalid signature"`.
+- **Structure phrasing** — input-shape words like `empty / nil / with N keys / map / slice / array / struct`. `"with empty slice"` → `"returns no matches when filter is unset"`.
+
+When a name (yours or one you are reviewing) matches any of the above, read the `Test()` body and rewrite. Do not silently change names — propose 1–2 concrete replacements derived from the body. See [naming.md](naming.md) for the replacement protocol and worked examples.
+
 ## File layout
 
 For samurai test files, top-to-bottom:
@@ -60,4 +73,5 @@ Cost: samurai re-executes the full path per leaf — same cost as manually dupli
 ## Additional resources (lazy-load — read only when triggered)
 
 - **Read [api.md](api.md) only when** you need the worked-out `samurai.Run` / `RunWith` API example (e.g. wiring a new test scope, writing a custom context type for `RunWith`). The "When to Use" / "Detection protocol" sections above are sufficient for review and detection work.
+- **Read [naming.md](naming.md) only when** authoring a new `s.Test(...)` name and the right phrasing isn't obvious, or reviewing a samurai test where at least one name matches a forbidden pattern above. The inline "Naming" section is enough for clearly-good or clearly-bad names; load this when you need the actor/verb/outcome replacement protocol.
 - **Read [pitfalls.md](pitfalls.md) only when** debugging a panic, a validation error, or a wrong pattern (e.g. asserting on a parent's result inside a child Test, declaring vars where they should be assigned). Skip otherwise — the rules above already cover the common authoring decisions.
