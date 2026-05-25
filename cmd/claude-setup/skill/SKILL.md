@@ -22,16 +22,16 @@ description: "Samurai scoped testing framework for Go (github.com/zerosixty/samu
 
 ## Naming
 
-Every `s.Test("name", ...)` — top, intermediate, leaf — names a business action or outcome from the actor's point of view. Never the function under test, the assertion, or the input data shape. The same bar applies at every level of the tree.
+Every `s.Test("name", ...)` — at every tree level — names a business action or outcome from the actor's POV. Not the function under test, the assertion, or the input shape.
 
-Forbidden patterns (flag and rewrite when authoring or reviewing):
+Forbidden patterns:
 
-- **Identifier leak** — any CamelCase token that appears as a Go identifier in the Test body (function, type, method). `"UpdateQuote calls produce audit records"` leaks `UpdateQuote`.
-- **HTTP / status leak** — bare 3-digit codes matching `\b[1-5]\d{2}\b`. `"returns 409"` → `"rejects duplicate id"`.
-- **Assertion phrasing** — verbs like `is / equals / returns / not nil / has length / contains` describing the value, not the step. `"err is not nil"` → `"rejects invalid signature"`.
-- **Structure phrasing** — input-shape words like `empty / nil / with N keys / map / slice / array / struct`. `"with empty slice"` → `"returns no matches when filter is unset"`.
+- **Identifier leak** — CamelCase tokens matching Go identifiers in the Test body. `"UpdateQuote calls..."` leaks `UpdateQuote`.
+- **HTTP code leak** — bare 3-digit codes (`\b[1-5]\d{2}\b`) or `4xx/5xx` shorthand. `"returns 409"` → `"rejects duplicate id"`.
+- **Assertion phrasing** — `is / equals / returns / not nil / has length / contains / has`. `"err is not nil"` → `"rejects invalid signature"`.
+- **Structure phrasing** — `empty / nil / with N / map / slice / struct`. `"with empty slice"` → `"borrower has no past loans"`.
 
-When a name (yours or one you are reviewing) matches any of the above, read the `Test()` body and rewrite. Do not silently change names — propose 1–2 concrete replacements derived from the body. See [naming.md](naming.md) for the replacement protocol and worked examples.
+Risky-looking words used in a domain-natural sense (`borrower returns the equipment`, `has insufficient collateral`, `no past loans`) are clean — only flag when the word describes the assertion, the data shape, or the identifier. Flag matches, read the body, propose 1–2 replacements. See [naming.md](naming.md) for the protocol.
 
 ## File layout
 
