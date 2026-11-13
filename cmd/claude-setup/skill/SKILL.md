@@ -5,7 +5,7 @@ description: "Samurai scoped testing framework for Go (github.com/zerosixty/samu
 
 # Samurai Test Writing Rules
 
-**Good For:** Go tests with a branching state-mutating tree (≥3 leaf paths, mutually exclusive siblings) using `samurai.Run` / `samurai.RunWith`.
+**Good For:** Go tests with a branching state-mutating tree (≥3 leaf paths, mutually exclusive siblings), or a shared setup that writes state for ≥3 leaves to read back, using `samurai.Run` / `samurai.RunWith`.
 **Bad For:** read-only chains, sequential accumulation, same-action-different-input variants, flat independent tests (see "When to Use" below for full criteria).
 
 ## Rules
@@ -56,12 +56,14 @@ USE samurai when ALL of these hold:
 2. **Mutually exclusive siblings**: running one path's actions would corrupt the starting state for another (e.g., "accept" vs "reject" from "requested" state)
 3. **>= 3 leaf paths**: below this, duplicated `t.Run` blocks are simpler
 
+Also USE samurai for a **shared setup**, even when rules 1 and 2 do not hold: a parent `Test` writes state (DB insert, RPC mutation), nested `Test`s read it back, and rule 3 holds. Each leaf runs the setup again on fresh state, so the setup is written once. The leaves can be read-only. This allows samurai; it is not a reason to convert flat tests that share a setup helper.
+
 Detect candidates at two levels:
 - **Within one function** — non-samurai test with nested `t.Run` where parent mutates state and 2+ children branch -> candidate for samurai
 - **Across functions** — group `TestFunc_*` by feature; if later functions repeat earlier ones' **state-mutating** actions (writes/RPC mutations/DB inserts) plus add diverging steps -> candidate. DO NOT flag: repeated read chains (data dup, not state tree); same endpoint with different inputs (variants, not branches)
 
 DO NOT use samurai when ANY of these hold:
-1. **Read-only subtests**: branches only query shared state without mutating it. `Get → extract id → Get` chains are data extraction, not state trees — chain length is irrelevant
+1. **Read-only without a writing parent**: the branches only query state that no parent `Test` wrote. `Get → extract id → Get` chains are data extraction, not state trees — chain length is irrelevant
 2. **Sequential accumulation**: each step depends on cumulative effects of ALL prior steps (linear chain, not branching)
 3. **Same action, different inputs**: multiple tests call the same endpoint with different configurations — no test repeats another's actions as a prefix
 4. **Flat/independent**: each subtest creates its own complete setup
@@ -72,7 +74,7 @@ Common false positives: `_HappyPath` / `_AccessDenied` siblings (access-denied u
 
 1. **Read bodies, not names.** `Test_X_HappyPath` is not evidence.
 2. **Swap-order test.** If two tests can be reordered with no effect, they are flat — not a tree.
-3. **Find the writes.** No mutating step in any sibling → samurai adds nothing.
+3. **Find the writes.** No write in any `Test`, parent or sibling → samurai adds nothing.
 
 Cost: samurai re-executes the full path per leaf — same cost as manually duplicating setup, just automated. Parallel execution offsets wall-clock time.
 
